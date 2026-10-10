@@ -527,7 +527,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
               <VirtualKeyboard
                 activeKeyCodes={activeKeyCodes}
                 targetKeyCode={expectedKeystroke?.code}
-                requiresShift={expectedKeystroke?.shift}
+                requiresShift={expectedKeystroke?.requiresShift}
                 errorKeyCode={errorKeyCode}
                 showHandsGuide={true}
               />
