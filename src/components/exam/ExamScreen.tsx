@@ -26,6 +26,8 @@ import { audioService } from '@/services/engine/audioService';
 import { MonotonicExamTimer } from '@/services/exam/monotonicTimer';
 import { ScoringEngine } from '@/services/exam/scoringEngine';
 import { storageService } from '@/services/storage/storageService';
+import { HeatmapService } from '@/services/analytics/heatmapService';
+import { AchievementService } from '@/services/achievements/achievementService';
 import { useProfile } from '@/context/ProfileContext';
 import {
   ExamAttemptRecord,
@@ -136,6 +138,9 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
     try {
       const adapter = await storageService.getAdapter();
       await adapter.saveExamResult(record);
+      if (activeProfile) {
+        AchievementService.evaluateAndAwardAchievements(activeProfile.id).catch(() => {});
+      }
     } catch {
       // Storage guard
     }
@@ -283,6 +288,21 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       // Audio feedback
       if (!isMuted) {
         audioService.playKeyStroke();
+      }
+
+      // Record to Heatmap Service
+      if (activeProfile) {
+        const expectedChar = passage.text[typedText.length] || '';
+        const isCorrect = charToAdd === expectedChar;
+        const layoutKey = config.layout === 'Hindi InScript' ? 'hindi_inscript' : 'english_qwerty';
+        HeatmapService.recordKeyAttempt(
+          activeProfile.id,
+          layoutKey,
+          e.code,
+          expectedChar,
+          charToAdd,
+          isCorrect
+        ).catch(() => {});
       }
 
       setTypedText((prev) => prev + charToAdd);

@@ -14,6 +14,7 @@ export interface StudentPreferences {
   theme: ThemePreference;
   soundEffects: boolean;
   fontSize: 'normal' | 'large' | 'extra-large';
+  showOnLeaderboard?: boolean;
 }
 
 export interface StudentProfile {

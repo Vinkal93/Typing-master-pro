@@ -14,6 +14,15 @@ import {
   AuditLogEntry,
   InstituteSettings,
 } from '@/types/institute';
+import {
+  KeyHeatmapStat,
+  StudentAchievement,
+  AchievementMilestoneSettings,
+  CertificateRecord,
+  CertificateRevocation,
+  PracticeRecommendation,
+} from '@/types/analytics';
+import { KeyboardLayout } from '@/types';
 
 export interface StorageAdapter {
   init(): Promise<void>;
@@ -85,6 +94,26 @@ export interface StorageAdapter {
 
   getInstituteSettings(): Promise<InstituteSettings>;
   saveInstituteSettings(settings: InstituteSettings): Promise<void>;
+
+  // Phase 6: Analytics, Heatmaps, Achievements & Certificates
+  getKeyHeatmapStats(profileId: string, layout?: KeyboardLayout): Promise<KeyHeatmapStat[]>;
+  saveKeyHeatmapStat(stat: KeyHeatmapStat): Promise<void>;
+  bulkSaveKeyHeatmapStats(stats: KeyHeatmapStat[]): Promise<void>;
+
+  getStudentAchievements(profileId: string): Promise<StudentAchievement[]>;
+  saveStudentAchievement(achievement: StudentAchievement): Promise<void>;
+  getAchievementSettings(): Promise<AchievementMilestoneSettings>;
+  saveAchievementSettings(settings: AchievementMilestoneSettings): Promise<void>;
+
+  getCertificates(profileId?: string): Promise<CertificateRecord[]>;
+  getCertificateById(id: string): Promise<CertificateRecord | null>;
+  saveCertificate(cert: CertificateRecord): Promise<void>;
+  saveCertificateRevocation(revocation: CertificateRevocation): Promise<void>;
+  getCertificateRevocation(certId: string): Promise<CertificateRevocation | null>;
+
+  getPracticeRecommendations(profileId: string): Promise<PracticeRecommendation[]>;
+  savePracticeRecommendation(rec: PracticeRecommendation): Promise<void>;
+  markRecommendationComplete(id: string): Promise<void>;
 
   // Backup & Migration
   exportAllData(): Promise<string>;

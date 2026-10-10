@@ -5,6 +5,64 @@ All notable changes to **Typing Master Pro** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - Phase 6: Advanced Analytics, Achievements & Certificates - 2026-10-10
+
+### Added
+- **Module 1: Advanced Student Analytics (`StudentAnalyticsView.tsx`, `AnalyticsService.ts`)**:
+  - Detailed performance metrics: Best and average Gross WPM, Best and average Net WPM, Best and average Accuracy %, total practice duration, completed lessons count (out of 160), and completed official exams count.
+  - Multi-dimensional filters: Date range (All, 7 days, 30 days, 90 days), Language (Hindi, English), Keyboard Layout (Hindi InScript, English QWERTY), and Duration (1m, 2m, 5m, 10m, 15m).
+  - Chronological trend chart with SVG bar visualizations and hover tooltips showing Net WPM progression over time.
+  - Personal Records Showcase: Peak Net Speed, Highest Accuracy, and Peak Gross Speed with timestamps and test titles.
+  - Weekly and monthly performance percentage change indicators (`weeklyWpmChangePct`, `monthlyWpmChangePct`).
+  - Graceful empty states with constructive onboarding guidance for new students without test history.
+- **Module 2: Keyboard Accuracy Heatmap (`KeyboardHeatmapView.tsx`, `HeatmapService.ts`)**:
+  - Interactive physical keyboard canvas for both Hindi InScript and English QWERTY.
+  - Per-key keystroke tracking distinguishing physical key codes (`event.code`, e.g. `KeyK`) from Unicode characters (e.g. `क`, `k`).
+  - Dynamic color coding: Mastered (>= 95%, emerald), Good (85-94%, light emerald), Fair (75-84%, amber), Weak (60-74%, orange), Critical (< 60%, rose), and Untrained (slate).
+  - Detailed Key Diagnostic Modal displaying total attempts, correct count, accuracy %, average response latency in milliseconds, and top repeated confusion characters.
+- **Module 3: Intelligent Practice Recommendations (`SmartRecommendationsView.tsx`, `RecommendationService.ts`)**:
+  - Local heuristic remediation engine analyzing weak keys, recent accuracy, response latency, and revision intervals.
+  - Generates focused practice exercises targeting high-error keys with authentic Devanagari syllable/word banks or English vocabulary.
+  - 100% offline local generation without external AI APIs or cloud dependencies.
+  - Multi-pattern variety preventing repetitive drill fatigue.
+  - Direct 1-click drill launcher loading customized exercises into the Practice Engine.
+- **Module 4: Milestone Achievements System (`AchievementsView.tsx`, `AchievementService.ts`)**:
+  - 16+ structured achievements across Speed (20, 30, 40, 50 WPM), Accuracy (90, 95, 98, 100%), Consistency (3, 7, 30-day streaks), Curriculum (1st lesson, Level 1 completed, All 160 lessons), and Exams (Debut, Veteran).
+  - Tiered badge styling: Bronze, Silver, Gold, Platinum.
+  - Duplicate award prevention engine ensuring milestone integrity across multiple evaluations.
+  - Administrator configurable thresholds via `AchievementMilestoneSettings`.
+  - Progress tracker showing completion percentage and unlocked medal counts.
+- **Module 5: Professional Certificate Management (`CertificateService.ts`, `CertificateGalleryView.tsx`, `CertificateIssueModal.tsx`)**:
+  - Qualification engine enforcing institutional certification standards (verifies completed passed exam with >= 25 Net WPM and >= 85% Accuracy). Rejects unverified or failing scores.
+  - Automatic Grade calculation: A+ (>= 50 WPM, >= 98% Acc), A (>= 40 WPM, >= 95% Acc), B (>= 30 WPM, >= 90% Acc), C (>= 25 WPM, >= 85% Acc), Pass.
+  - Unique tamper-evident Certificate ID generator (`TMP-CERT-YYYY-XXXXX`).
+  - Cryptographic digital signatures computed via SHA-256 over candidate metadata, net WPM, accuracy, and issue timestamp.
+  - Printable Certificate Modal (`CertificatePreviewModal.tsx`) with classic gold double-border styling, official seal watermark, Devanagari typography, and direct `window.print()` trigger.
+  - Certificate revocation engine tracking authorized instructor ID, timestamp, and audit trail reason.
+- **Module 6: Offline Certificate Verification (`CertificateVerificationModal.tsx`, `CertificateVerificationService.ts`)**:
+  - Offline verification tool verifying certificate ID against local registry without internet.
+  - Validates SHA-256 digital signature to guarantee zero tampering or unauthorized grade modifications.
+  - Checks revocation registry and clearly marks revoked credentials.
+- **Module 7: Institute Leaderboards & Privacy Controls (`LeaderboardView.tsx`, `LeaderboardService.ts`)**:
+  - Student and Batch leaderboards with fair parameter isolation (only compares identical language, layout, duration, and scoring policy).
+  - Metric sorting: Peak Net WPM, Highest Accuracy, or Most Improved.
+  - Timeframe filters: All-time, Monthly, Weekly.
+  - Privacy protections: Student opt-out preference (`showOnLeaderboard: false`) anonymizing names as "Anonymous Typist" for peer viewers.
+- **Module 8: Teacher Analytics & Batch Radar (`TeacherAnalyticsView.tsx`, `TeacherAnalyticsService.ts`)**:
+  - Scoped faculty analytics dashboard restricted strictly to teacher-authorized batches and students.
+  - Early-warning At-Risk Student radar detecting low accuracy (<85%), low speed (<20 WPM), or long absence (>7 days).
+  - Collective Weak-Key Radar identifying the most failed Devanagari characters across the entire batch to advise lecture topics.
+  - Batch performance matrix and achievement distribution summaries.
+- **Module 9: Offline Storage Schema Upgrade (IndexedDB v5)**:
+  - Upgraded database version to `DB_VERSION = 5` in `indexedDbAdapter.ts`.
+  - Added 6 new object stores: `key_heatmap_stats`, `student_achievements`, `achievement_settings`, `certificates`, `certificate_revocations`, `practice_recommendations`.
+  - Delegating methods added in `TauriSQLiteStorageAdapter`.
+  - Non-destructive migration preserving all Phase 1-5 student profiles, LMS progress, exam records, and institute batches.
+  - Backup export and restore extended to include all Phase 6 datasets under schema version 5.
+- **Module 10: Automated Test Coverage**:
+  - 21 new automated unit tests added across 5 test suites (`analyticsService.test.ts`, `heatmapService.test.ts`, `achievementService.test.ts`, `certificateService.test.ts`, `leaderboardService.test.ts`, `phase6Persistence.test.ts`).
+  - Total test suite now stands at **108 passed tests across 26 test files (100% pass rate)**.
+
 ## [5.0.0] - Phase 5: Teacher Admin & Institute Management - 2026-10-10
 
 ### Added

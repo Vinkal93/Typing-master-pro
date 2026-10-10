@@ -16,6 +16,15 @@ import {
   AuditLogEntry,
   InstituteSettings,
 } from '@/types/institute';
+import {
+  KeyHeatmapStat,
+  StudentAchievement,
+  AchievementMilestoneSettings,
+  CertificateRecord,
+  CertificateRevocation,
+  PracticeRecommendation,
+} from '@/types/analytics';
+import { KeyboardLayout } from '@/types';
 
 /**
  * Tauri SQLite Storage Adapter.
@@ -707,6 +716,67 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
 
   public async saveInstituteSettings(settings: InstituteSettings): Promise<void> {
     return this.fallbackAdapter.saveInstituteSettings(settings);
+  }
+
+  // Phase 6: Analytics, Heatmap, Achievements & Certificates
+  public async getKeyHeatmapStats(profileId: string, layout?: KeyboardLayout): Promise<KeyHeatmapStat[]> {
+    return this.fallbackAdapter.getKeyHeatmapStats(profileId, layout);
+  }
+
+  public async saveKeyHeatmapStat(stat: KeyHeatmapStat): Promise<void> {
+    return this.fallbackAdapter.saveKeyHeatmapStat(stat);
+  }
+
+  public async bulkSaveKeyHeatmapStats(stats: KeyHeatmapStat[]): Promise<void> {
+    return this.fallbackAdapter.bulkSaveKeyHeatmapStats(stats);
+  }
+
+  public async getStudentAchievements(profileId: string): Promise<StudentAchievement[]> {
+    return this.fallbackAdapter.getStudentAchievements(profileId);
+  }
+
+  public async saveStudentAchievement(achievement: StudentAchievement): Promise<void> {
+    return this.fallbackAdapter.saveStudentAchievement(achievement);
+  }
+
+  public async getAchievementSettings(): Promise<AchievementMilestoneSettings> {
+    return this.fallbackAdapter.getAchievementSettings();
+  }
+
+  public async saveAchievementSettings(settings: AchievementMilestoneSettings): Promise<void> {
+    return this.fallbackAdapter.saveAchievementSettings(settings);
+  }
+
+  public async getCertificates(profileId?: string): Promise<CertificateRecord[]> {
+    return this.fallbackAdapter.getCertificates(profileId);
+  }
+
+  public async getCertificateById(id: string): Promise<CertificateRecord | null> {
+    return this.fallbackAdapter.getCertificateById(id);
+  }
+
+  public async saveCertificate(cert: CertificateRecord): Promise<void> {
+    return this.fallbackAdapter.saveCertificate(cert);
+  }
+
+  public async saveCertificateRevocation(revocation: CertificateRevocation): Promise<void> {
+    return this.fallbackAdapter.saveCertificateRevocation(revocation);
+  }
+
+  public async getCertificateRevocation(certId: string): Promise<CertificateRevocation | null> {
+    return this.fallbackAdapter.getCertificateRevocation(certId);
+  }
+
+  public async getPracticeRecommendations(profileId: string): Promise<PracticeRecommendation[]> {
+    return this.fallbackAdapter.getPracticeRecommendations(profileId);
+  }
+
+  public async savePracticeRecommendation(rec: PracticeRecommendation): Promise<void> {
+    return this.fallbackAdapter.savePracticeRecommendation(rec);
+  }
+
+  public async markRecommendationComplete(id: string): Promise<void> {
+    return this.fallbackAdapter.markRecommendationComplete(id);
   }
 
   public async exportAllData(): Promise<string> {

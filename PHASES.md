@@ -116,20 +116,37 @@ This document outlines completed milestones and future implementation phases for
 
 ---
 
-## 🟡 Phase 6: Hindi Remington GAIL Keyboard Engine & Strict Kiosk Lockdown (Upcoming)
+## 🟢 Phase 6: Advanced Analytics, Achievements & Certificates (Completed)
+
+| Module / Requirement | Status | Verification / Artifact |
+| :--- | :--- | :--- |
+| **Advanced Student Analytics** | ✅ Completed | `src/components/analytics/StudentAnalyticsView.tsx`, `AnalyticsService.ts` — WPM/Acc trends & records |
+| **Physical Keyboard Heatmap** | ✅ Completed | `src/components/analytics/KeyboardHeatmapView.tsx`, `HeatmapService.ts` — Physical key diagnostics |
+| **Smart Practice Recommendations** | ✅ Completed | `src/components/analytics/SmartRecommendationsView.tsx`, `RecommendationService.ts` — Weak-key remediation |
+| **Milestone Achievements System** | ✅ Completed | `src/components/achievements/AchievementsView.tsx`, `AchievementService.ts` — 16+ badges & anti-duplication |
+| **Certificate Issuance & Printing** | ✅ Completed | `src/components/certificates/CertificatePreviewModal.tsx`, `CertificateService.ts` — Gold border & print |
+| **Cryptographic Offline Verification**| ✅ Completed | `src/components/certificates/CertificateVerificationModal.tsx` — Local SHA-256 signature check |
+| **Fair Leaderboards & Privacy Opt-Out**| ✅ Completed | `src/components/leaderboard/LeaderboardView.tsx`, `LeaderboardService.ts` — Param-normalized rankings |
+| **Faculty Analytics & At-Risk Radar** | ✅ Completed | `src/components/institute/TeacherAnalyticsView.tsx`, `TeacherAnalyticsService.ts` — Scoped diagnostics |
+| **Storage Schema Upgrade (v5)** | ✅ Completed | IndexedDB (v5) & SQLite stores for `key_heatmap_stats`, `achievements`, `certificates` |
+| **Automated Test Coverage** | ✅ Completed | 108 automated tests in `src/test/` passing 100% |
+
+---
+
+## 🟡 Phase 7: Hindi Remington GAIL Keyboard Engine & Strict Kiosk Lockdown (Upcoming)
 
 | Module / Feature | Target Milestone | Description |
 | :--- | :--- | :--- |
-| **Hindi Remington GAIL Layout Engine** | Phase 6.1 | Authoritative Remington typewriter keyboard mapping with shift & alt combinations |
-| **Remington Interactive Virtual Keyboard** | Phase 6.2 | Full-size visual Remington keymap with character positions and finger assignments |
-| **Remington Character Drills & Word Builder** | Phase 6.3 | Progressive Remington drills matching CPCT & High Court typewriter syllabus |
-| **Strict Examination Kiosk Lockdown** | Phase 6.4 | Fullscreen lock, Alt+Tab / Windows key intercept, and offline cheating detection |
-| **Live Multi-PC Socket Sync Engine** | Phase 6.5 | Implementation of the Phase 5 LAN protocol socket daemon on port 8765 |
+| **Hindi Remington GAIL Layout Engine** | Phase 7.1 | Authoritative Remington typewriter keyboard mapping with shift & alt combinations |
+| **Remington Interactive Virtual Keyboard** | Phase 7.2 | Full-size visual Remington keymap with character positions and finger assignments |
+| **Remington Character Drills & Word Builder** | Phase 7.3 | Progressive Remington drills matching CPCT & High Court typewriter syllabus |
+| **Strict Examination Kiosk Lockdown** | Phase 7.4 | Fullscreen lock, Alt+Tab / Windows key intercept, and offline cheating detection |
+| **Live Multi-PC Socket Sync Engine** | Phase 7.5 | Implementation of the Phase 5 LAN protocol socket daemon on port 8765 |
 
 ---
 
 ## 🛡️ Data Migration & Compatibility Policy
 
-1. **Profile Protection**: User profiles, Phase 1/2 records, Phase 3 LMS progress, Phase 4 exam scorecards, and Phase 5 institute batches/attendance are never wiped during schema updates.
-2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 4`) and non-destructive migrations.
+1. **Profile Protection**: User profiles, Phase 1/2 records, Phase 3 LMS progress, Phase 4 exam scorecards, Phase 5 institute batches/attendance, and Phase 6 certificates/achievements are never wiped during schema updates.
+2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 5`) and non-destructive migrations.
 3. **Offline Portability**: Students and instructors can export their `.json` profile backups and institute archives and restore them on any computer lab terminal with full progress intact.

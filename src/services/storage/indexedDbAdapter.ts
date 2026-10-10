@@ -15,10 +15,19 @@ import {
   AuditLogEntry,
   InstituteSettings,
 } from '@/types/institute';
+import {
+  KeyHeatmapStat,
+  StudentAchievement,
+  AchievementMilestoneSettings,
+  CertificateRecord,
+  CertificateRevocation,
+  PracticeRecommendation,
+} from '@/types/analytics';
+import { KeyboardLayout } from '@/types';
 import { CryptoService } from '../security/cryptoService';
 
 const DB_NAME = 'typing_master_pro_db';
-const DB_VERSION = 4; // Upgraded for Phase 5 Teacher Admin & Institute Management
+const DB_VERSION = 5; // Upgraded for Phase 6 Advanced Analytics, Achievements & Certificates
 
 export class IndexedDBStorageAdapter implements StorageAdapter {
   private db: IDBDatabase | null = null;
@@ -109,6 +118,35 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
         if (!db.objectStoreNames.contains('institute_settings')) {
           db.createObjectStore('institute_settings', { keyPath: 'key' });
+        }
+
+        // Phase 6 Analytics, Heatmap, Achievements & Certificates Stores
+        if (!db.objectStoreNames.contains('key_heatmap_stats')) {
+          const heatStore = db.createObjectStore('key_heatmap_stats', { keyPath: 'id' });
+          heatStore.createIndex('profileId', 'profileId', { unique: false });
+          heatStore.createIndex('layout', 'layout', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('student_achievements')) {
+          const achStore = db.createObjectStore('student_achievements', { keyPath: 'id' });
+          achStore.createIndex('profileId', 'profileId', { unique: false });
+          achStore.createIndex('achievementCode', 'achievementCode', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('achievement_settings')) {
+          db.createObjectStore('achievement_settings', { keyPath: 'key' });
+        }
+        if (!db.objectStoreNames.contains('certificates')) {
+          const certStore = db.createObjectStore('certificates', { keyPath: 'id' });
+          certStore.createIndex('profileId', 'profileId', { unique: false });
+          certStore.createIndex('issuedAt', 'issuedAt', { unique: false });
+          certStore.createIndex('status', 'status', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('certificate_revocations')) {
+          db.createObjectStore('certificate_revocations', { keyPath: 'certificateId' });
+        }
+        if (!db.objectStoreNames.contains('practice_recommendations')) {
+          const recStore = db.createObjectStore('practice_recommendations', { keyPath: 'id' });
+          recStore.createIndex('profileId', 'profileId', { unique: false });
+          recStore.createIndex('createdAt', 'createdAt', { unique: false });
         }
       };
 
@@ -828,6 +866,238 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     });
   }
 
+  // --- Phase 6: Analytics, Heatmap, Achievements & Certificates ---
+
+  public async getKeyHeatmapStats(profileId: string, layout?: KeyboardLayout): Promise<KeyHeatmapStat[]> {
+    try {
+      const store = await this.getStore('key_heatmap_stats', 'readonly');
+      const index = store.index('profileId');
+      return new Promise<KeyHeatmapStat[]>((resolve, reject) => {
+        const request = index.getAll(profileId);
+        request.onsuccess = () => {
+          const results: KeyHeatmapStat[] = request.result || [];
+          if (layout) {
+            resolve(results.filter((item) => item.layout === layout));
+          } else {
+            resolve(results);
+          }
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async saveKeyHeatmapStat(stat: KeyHeatmapStat): Promise<void> {
+    const store = await this.getStore('key_heatmap_stats', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(stat);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async bulkSaveKeyHeatmapStats(stats: KeyHeatmapStat[]): Promise<void> {
+    if (!stats || stats.length === 0) return;
+    const store = await this.getStore('key_heatmap_stats', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      let pending = stats.length;
+      let errorOccurred = false;
+
+      stats.forEach((item) => {
+        const req = store.put(item);
+        req.onsuccess = () => {
+          pending--;
+          if (pending === 0 && !errorOccurred) resolve();
+        };
+        req.onerror = () => {
+          errorOccurred = true;
+          reject(req.error);
+        };
+      });
+    });
+  }
+
+  public async getStudentAchievements(profileId: string): Promise<StudentAchievement[]> {
+    try {
+      const store = await this.getStore('student_achievements', 'readonly');
+      const index = store.index('profileId');
+      return new Promise<StudentAchievement[]>((resolve, reject) => {
+        const request = index.getAll(profileId);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async saveStudentAchievement(achievement: StudentAchievement): Promise<void> {
+    const store = await this.getStore('student_achievements', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(achievement);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async getAchievementSettings(): Promise<AchievementMilestoneSettings> {
+    const defaultSettings: AchievementMilestoneSettings = {
+      minSpeedBronze: 20,
+      minSpeedSilver: 30,
+      minSpeedGold: 40,
+      minSpeedPlatinum: 50,
+      minAccuracySilver: 90,
+      minAccuracyGold: 95,
+      streakDaysSilver: 3,
+      streakDaysGold: 7,
+      streakDaysPlatinum: 30,
+      updatedAt: Date.now(),
+    };
+
+    try {
+      const store = await this.getStore('achievement_settings', 'readonly');
+      return new Promise<AchievementMilestoneSettings>((resolve) => {
+        const request = store.get('global_achievement_settings');
+        request.onsuccess = () => {
+          if (request.result && request.result.settings) {
+            resolve(request.result.settings);
+          } else {
+            resolve(defaultSettings);
+          }
+        };
+        request.onerror = () => resolve(defaultSettings);
+      });
+    } catch {
+      return defaultSettings;
+    }
+  }
+
+  public async saveAchievementSettings(settings: AchievementMilestoneSettings): Promise<void> {
+    const store = await this.getStore('achievement_settings', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put({ key: 'global_achievement_settings', settings });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async getCertificates(profileId?: string): Promise<CertificateRecord[]> {
+    try {
+      const store = await this.getStore('certificates', 'readonly');
+      return new Promise<CertificateRecord[]>((resolve, reject) => {
+        if (profileId) {
+          const index = store.index('profileId');
+          const request = index.getAll(profileId);
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        } else {
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        }
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async getCertificateById(id: string): Promise<CertificateRecord | null> {
+    try {
+      const store = await this.getStore('certificates', 'readonly');
+      return new Promise<CertificateRecord | null>((resolve, reject) => {
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  public async saveCertificate(cert: CertificateRecord): Promise<void> {
+    const store = await this.getStore('certificates', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(cert);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async saveCertificateRevocation(revocation: CertificateRevocation): Promise<void> {
+    const store = await this.getStore('certificate_revocations', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(revocation);
+      request.onsuccess = async () => {
+        // Also update certificate status to revoked
+        try {
+          const cert = await this.getCertificateById(revocation.certificateId);
+          if (cert) {
+            cert.status = 'revoked';
+            await this.saveCertificate(cert);
+          }
+        } catch {
+          // Guard
+        }
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async getCertificateRevocation(certId: string): Promise<CertificateRevocation | null> {
+    try {
+      const store = await this.getStore('certificate_revocations', 'readonly');
+      return new Promise<CertificateRevocation | null>((resolve, reject) => {
+        const request = store.get(certId);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  public async getPracticeRecommendations(profileId: string): Promise<PracticeRecommendation[]> {
+    try {
+      const store = await this.getStore('practice_recommendations', 'readonly');
+      const index = store.index('profileId');
+      return new Promise<PracticeRecommendation[]>((resolve, reject) => {
+        const request = index.getAll(profileId);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async savePracticeRecommendation(rec: PracticeRecommendation): Promise<void> {
+    const store = await this.getStore('practice_recommendations', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(rec);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async markRecommendationComplete(id: string): Promise<void> {
+    try {
+      const store = await this.getStore('practice_recommendations', 'readwrite');
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const rec = request.result as PracticeRecommendation | undefined;
+        if (rec) {
+          rec.isCompleted = true;
+          store.put(rec);
+        }
+      };
+    } catch {
+      // Guard
+    }
+  }
+
   // --- Backup & Migration ---
 
   public async exportAllData(): Promise<string> {
@@ -843,20 +1113,29 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     const attendance = await this.getAttendanceRecords();
     const auditLogs = await this.getAuditLogs(500);
 
+    const certificates = await this.getCertificates();
+    const achievementSettings = await this.getAchievementSettings();
+
     const results: Record<string, PracticeResult[]> = {};
     const lmsProgress: Record<string, StudentLessonProgress[]> = {};
     const mistakeStats: Record<string, CharacterMistakeStat[]> = {};
     const examResults: Record<string, ExamAttemptRecord[]> = {};
+    const keyHeatmapStats: Record<string, KeyHeatmapStat[]> = {};
+    const studentAchievements: Record<string, StudentAchievement[]> = {};
+    const practiceRecommendations: Record<string, PracticeRecommendation[]> = {};
 
     for (const p of profiles) {
       results[p.id] = await this.getResults(p.id);
       lmsProgress[p.id] = await this.getLessonProgress(p.id);
       mistakeStats[p.id] = await this.getMistakeStats(p.id);
       examResults[p.id] = await this.getExamResults(p.id);
+      keyHeatmapStats[p.id] = await this.getKeyHeatmapStats(p.id);
+      studentAchievements[p.id] = await this.getStudentAchievements(p.id);
+      practiceRecommendations[p.id] = await this.getPracticeRecommendations(p.id);
     }
 
     const payload = {
-      version: 4,
+      version: 5,
       exportedAt: Date.now(),
       profiles,
       activeProfileId,
@@ -873,6 +1152,11 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
       testAssignments,
       attendance,
       auditLogs,
+      keyHeatmapStats,
+      studentAchievements,
+      achievementSettings,
+      certificates,
+      practiceRecommendations,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -993,6 +1277,54 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         for (const a of parsed.attendance) {
           if (a.id && a.date) {
             await this.saveAttendanceRecord(a);
+          }
+        }
+      }
+
+      // Phase 6 Imports
+      if (parsed.keyHeatmapStats && typeof parsed.keyHeatmapStats === 'object') {
+        for (const profileId of Object.keys(parsed.keyHeatmapStats)) {
+          const list = parsed.keyHeatmapStats[profileId];
+          if (Array.isArray(list) && list.length > 0) {
+            await this.bulkSaveKeyHeatmapStats(list);
+          }
+        }
+      }
+
+      if (parsed.studentAchievements && typeof parsed.studentAchievements === 'object') {
+        for (const profileId of Object.keys(parsed.studentAchievements)) {
+          const list = parsed.studentAchievements[profileId];
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              if (item.id && item.profileId && item.achievementCode) {
+                await this.saveStudentAchievement(item);
+              }
+            }
+          }
+        }
+      }
+
+      if (parsed.achievementSettings) {
+        await this.saveAchievementSettings(parsed.achievementSettings);
+      }
+
+      if (parsed.certificates && Array.isArray(parsed.certificates)) {
+        for (const cert of parsed.certificates) {
+          if (cert.id && cert.studentName) {
+            await this.saveCertificate(cert);
+          }
+        }
+      }
+
+      if (parsed.practiceRecommendations && typeof parsed.practiceRecommendations === 'object') {
+        for (const profileId of Object.keys(parsed.practiceRecommendations)) {
+          const list = parsed.practiceRecommendations[profileId];
+          if (Array.isArray(list)) {
+            for (const rec of list) {
+              if (rec.id && rec.profileId) {
+                await this.savePracticeRecommendation(rec);
+              }
+            }
           }
         }
       }

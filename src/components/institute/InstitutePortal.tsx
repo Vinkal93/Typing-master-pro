@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   KeyRound,
   AlertCircle,
+  Award,
 } from 'lucide-react';
 import { AuthSession } from '@/types/institute';
 import { RbacService } from '@/services/security/rbacService';
@@ -29,6 +30,8 @@ import { AttendanceRegisterView } from './AttendanceRegisterView';
 import { InstituteReportsView } from './InstituteReportsView';
 import { BackupRestoreView } from './BackupRestoreView';
 import { LanSpecView } from './LanSpecView';
+import { TeacherAnalyticsView } from './TeacherAnalyticsView';
+import { InstituteCertificateManagerView } from './InstituteCertificateManagerView';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
@@ -40,6 +43,8 @@ interface InstitutePortalProps {
 export type InstitutePortalTab =
   | 'dashboard'
   | 'teacher_dashboard'
+  | 'teacher_analytics'
+  | 'certificates'
   | 'students'
   | 'batches'
   | 'assignments'
@@ -282,7 +287,31 @@ export const InstitutePortal: React.FC<InstitutePortalProps> = ({
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          Reports & Analytics
+          Reports & Benchmark
+        </button>
+
+        <button
+          onClick={() => setActiveTab('teacher_analytics')}
+          className={`px-3 py-2 font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'teacher_analytics'
+              ? 'bg-purple-600 text-white'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          Batch Analytics
+        </button>
+
+        <button
+          onClick={() => setActiveTab('certificates')}
+          className={`px-3 py-2 font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'certificates'
+              ? 'bg-purple-600 text-white'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Award className="w-3.5 h-3.5" />
+          Certificates
         </button>
 
         {isAdmin && (
@@ -334,6 +363,12 @@ export const InstitutePortal: React.FC<InstitutePortalProps> = ({
         )}
         {activeTab === 'reports' && (
           <InstituteReportsView />
+        )}
+        {activeTab === 'teacher_analytics' && (
+          <TeacherAnalyticsView authSession={session} />
+        )}
+        {activeTab === 'certificates' && (
+          <InstituteCertificateManagerView authSession={session} />
         )}
         {activeTab === 'backup' && (
           <BackupRestoreView currentUser={session.user} />

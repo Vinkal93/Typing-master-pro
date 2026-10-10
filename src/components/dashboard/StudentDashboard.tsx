@@ -38,12 +38,29 @@ import { AuthSession } from '@/types/institute';
 import { LessonCatalogService } from '@/services/lessons/lessonCatalog';
 import { StatisticsService, ProfileStatistics } from '@/services/statistics/statisticsService';
 import { LessonMetadata } from '@/types';
+import { StudentAnalyticsView } from '@/components/analytics/StudentAnalyticsView';
+import { KeyboardHeatmapView } from '@/components/analytics/KeyboardHeatmapView';
+import { SmartRecommendationsView } from '@/components/analytics/SmartRecommendationsView';
+import { AchievementsView } from '@/components/achievements/AchievementsView';
+import { CertificateGalleryView } from '@/components/certificates/CertificateGalleryView';
+import { LeaderboardView } from '@/components/leaderboard/LeaderboardView';
+import {
+  TrendingUp,
+  Award,
+  Trophy,
+} from 'lucide-react';
 
 export type ActiveModuleView =
   | 'dashboard'
   | 'lms'
   | 'exam'
   | 'institute'
+  | 'analytics'
+  | 'heatmap'
+  | 'recommendations'
+  | 'achievements'
+  | 'certificates'
+  | 'leaderboard'
   | 'practice'
   | 'character_learning'
   | 'word_builder'
@@ -205,6 +222,78 @@ export const StudentDashboard: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveView('analytics')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'analytics'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Analytics (विश्लेषण)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('heatmap')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'heatmap'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <KeyboardIcon className="w-3.5 h-3.5" />
+            <span>Heatmap (हीटमैप)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('recommendations')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'recommendations'
+                ? 'bg-amber-500 text-slate-950 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Smart Drills (सिफारिशें)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('achievements')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'achievements'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Achievements (पदक)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('certificates')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'certificates'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Certificates (प्रमाणपत्र)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('leaderboard')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'leaderboard'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Leaderboard (लीडरबोर्ड)</span>
+          </button>
+
+          <button
             onClick={() => setActiveView('virtual_keyboard')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
               activeView === 'virtual_keyboard'
@@ -294,6 +383,88 @@ export const StudentDashboard: React.FC = () => {
               initialSession={authSession}
               onExitToStudentDashboard={() => setActiveView('dashboard')}
             />
+          </div>
+        )}
+
+        {/* Phase 6: Performance Analytics */}
+        {activeView === 'analytics' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <StudentAnalyticsView />
+          </div>
+        )}
+
+        {/* Phase 6: Keyboard Heatmap */}
+        {activeView === 'heatmap' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <KeyboardHeatmapView />
+          </div>
+        )}
+
+        {/* Phase 6: Smart Recommendations */}
+        {activeView === 'recommendations' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <SmartRecommendationsView
+              onStartDrill={(text) => {
+                setActiveView('practice');
+              }}
+            />
+          </div>
+        )}
+
+        {/* Phase 6: Achievements */}
+        {activeView === 'achievements' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <AchievementsView />
+          </div>
+        )}
+
+        {/* Phase 6: Certificates */}
+        {activeView === 'certificates' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-purple-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <CertificateGalleryView />
+          </div>
+        )}
+
+        {/* Phase 6: Leaderboard */}
+        {activeView === 'leaderboard' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <LeaderboardView />
           </div>
         )}
 
