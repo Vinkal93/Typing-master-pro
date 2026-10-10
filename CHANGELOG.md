@@ -5,6 +5,54 @@ All notable changes to **Typing Master Pro** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - Phase 4: Professional Typing Examination System - 2026-10-10
+
+### Added
+- **Configurable Examination Setup (`ExamSetup.tsx`)**:
+  - Languages: Hindi (InScript) and English (QWERTY).
+  - Explicit layout policy: Remington GAIL is clearly marked as disabled (`Coming Soon - Engine In Development`) and never falsely enabled.
+  - Test durations: 1, 2, 5, 10, 15, 30, and 60 minutes.
+  - Difficulty ratings: Beginner, Intermediate, Advanced, and Ultra-Advanced.
+  - Backspace policies: Allowed (full editing), Restricted to current word, or Completely Disabled.
+  - Official Examination Presets: MP CPCT (15 min), SSC CGL/CHSL Tier-II (15 min), High Court Strict (10 min), Railway NTPC (10 min), Institute Assessment (5 min), and Speed Sandbox.
+- **Distraction-Free Examination Interface (`ExamScreen.tsx`)**:
+  - Live target text display with line tracking and input synchronization.
+  - Strict Examination Mode: completely suppresses live accuracy, mistake highlighting, and keyboard hints to emulate official exam conditions.
+  - Immediate backspace policy enforcement preventing unauthorized revisions.
+- **Monotonic Elapsed-Time Timer (`MonotonicExamTimer`)**:
+  - Wall-clock timestamp delta calculation (`Date.now() - startTimestamp`) preventing timer drift.
+  - Immunity to background tab throttling via `visibilitychange` synchronization.
+  - Crash recovery and pause/resume preservation using atomic `sessionStorage` checkpoints.
+  - Atomic double-submission guard (`markSubmitted`) preventing duplicate submissions.
+- **Sequence Alignment Scoring Engine (`ScoringEngine`)**:
+  - Needleman-Wunsch / Levenshtein word sequence alignment classifying words as correct, substitution, insertion, or omission.
+  - Error cascade prevention: single missed or inserted words do not invalidate subsequent passage alignment.
+  - Official scoring formulas:
+    - MP CPCT Hindi: 5 keystrokes per word standard with 1-word deduction per mistake.
+    - SSC CGL/CHSL: Error percentage penalty with configurable disqualification threshold.
+    - High Court Strict: 1.5x penalty per spelling mistake.
+    - Standard Typing Tutor: Net WPM = Gross WPM - (Errors / Minutes).
+- **Results Analytics & Diff Viewer (`ExamResultView.tsx`)**:
+  - Visual color-coded diff comparison: green (correct), red strike-through (substitution), amber (omission), purple (insertion).
+  - Complete KPI summary: Gross WPM, Net WPM, Accuracy, CPM, mistake breakdown, and backspaces used.
+- **Printable Scorecard & Certificate Generator (`ExamReportService.generatePrintableHtml`)**:
+  - Clean A4 printable HTML report with candidate details, verification ID, institutional stamp, and breakdown table (`window.print()`).
+- **Excel-Compatible CSV Export (`ExamReportService.exportResultsToCsv`)**:
+  - RFC 4180 compliant CSV export prepended with UTF-8 BOM (`\uFEFF`) ensuring Devanagari Hindi text opens correctly without character corruption in Microsoft Excel.
+- **Teacher Custom Passage Creator (`CustomPassageModal.tsx`)**:
+  - Custom passage authoring with live word and character counters, language tagging, and difficulty selection.
+- **Exam History & Attempt Tracker (`ExamHistoryModal.tsx`)**:
+  - Historical exam attempt logs with one-click full CSV export and printable scorecards.
+- **Storage Layer Schema Upgrade (v3)**:
+  - IndexedDB upgraded to `DB_VERSION = 3` with new object stores `exam_results` and `custom_passages`.
+  - Tauri SQLite database updated with corresponding tables.
+  - 100% backward compatibility preserving all Phase 1-3 profiles, LMS progress, and practice data.
+- **Automated Test Coverage**:
+  - 19 new tests in `scoringEngine.test.ts`, `monotonicTimer.test.ts`, `examPersistence.test.ts`, and `examReport.test.ts`.
+  - Total test suite now contains 69 passing tests across 15 test files.
+
+---
+
 ## [3.0.0] - Phase 3: Smart Learning Management System (LMS) - 2026-10-10
 
 ### Added

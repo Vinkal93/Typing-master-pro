@@ -5,9 +5,10 @@ import {
   CharacterMistakeStat,
   LmsTeacherSettings,
 } from '@/types/lms';
+import { ExamAttemptRecord, ExamPassage } from '@/types/exam';
 
 const DB_NAME = 'typing_master_pro_db';
-const DB_VERSION = 2; // Upgraded for Phase 3 LMS & Mistake tracking
+const DB_VERSION = 3; // Upgraded for Phase 4 Examination System
 
 export class IndexedDBStorageAdapter implements StorageAdapter {
   private db: IDBDatabase | null = null;
@@ -66,6 +67,18 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         // Phase 3: Teacher Settings Store
         if (!db.objectStoreNames.contains('teacher_settings')) {
           db.createObjectStore('teacher_settings', { keyPath: 'key' });
+        }
+
+        // Phase 4: Examination Results Store
+        if (!db.objectStoreNames.contains('exam_results')) {
+          const examStore = db.createObjectStore('exam_results', { keyPath: 'id' });
+          examStore.createIndex('profileId', 'profileId', { unique: false });
+          examStore.createIndex('completedAt', 'completedAt', { unique: false });
+        }
+
+        // Phase 4: Custom Passages Store
+        if (!db.objectStoreNames.contains('custom_passages')) {
+          db.createObjectStore('custom_passages', { keyPath: 'id' });
         }
       };
 
@@ -338,6 +351,79 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     });
   }
 
+  // --- Phase 4 Examination Methods ---
+
+  public async getExamResults(profileId: string): Promise<ExamAttemptRecord[]> {
+    try {
+      const store = await this.getStore('exam_results', 'readonly');
+      const index = store.index('profileId');
+      return new Promise<ExamAttemptRecord[]>((resolve, reject) => {
+        const request = index.getAll(profileId);
+        request.onsuccess = () => {
+          const list: ExamAttemptRecord[] = request.result || [];
+          list.sort((a, b) => b.completedAt - a.completedAt);
+          resolve(list);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async getExamResultById(id: string): Promise<ExamAttemptRecord | null> {
+    try {
+      const store = await this.getStore('exam_results', 'readonly');
+      return new Promise<ExamAttemptRecord | null>((resolve, reject) => {
+        const request = store.get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  public async saveExamResult(record: ExamAttemptRecord): Promise<void> {
+    const store = await this.getStore('exam_results', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(record);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async getCustomPassages(): Promise<ExamPassage[]> {
+    try {
+      const store = await this.getStore('custom_passages', 'readonly');
+      return new Promise<ExamPassage[]>((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  public async saveCustomPassage(passage: ExamPassage): Promise<void> {
+    const store = await this.getStore('custom_passages', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.put(passage);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  public async deleteCustomPassage(id: string): Promise<void> {
+    const store = await this.getStore('custom_passages', 'readwrite');
+    return new Promise<void>((resolve, reject) => {
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // --- Backup & Migration ---
 
   public async exportAllData(): Promise<string> {
@@ -347,17 +433,20 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     const resultsMap: Record<string, PracticeResult[]> = {};
     const lmsMap: Record<string, StudentLessonProgress[]> = {};
     const mistakeMap: Record<string, CharacterMistakeStat[]> = {};
+    const examMap: Record<string, ExamAttemptRecord[]> = {};
 
     for (const profile of profiles) {
       resultsMap[profile.id] = await this.getResults(profile.id);
       lmsMap[profile.id] = await this.getLessonProgress(profile.id);
       mistakeMap[profile.id] = await this.getMistakeStats(profile.id);
+      examMap[profile.id] = await this.getExamResults(profile.id);
     }
 
     const teacherSettings = await this.getTeacherSettings();
+    const customPassages = await this.getCustomPassages();
 
     const payload = {
-      version: 2,
+      version: 3,
       appName: 'Typing Master Pro',
       exportedAt: Date.now(),
       activeProfileId,
@@ -366,6 +455,8 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
       lmsProgress: lmsMap,
       mistakeStats: mistakeMap,
       teacherSettings,
+      examResults: examMap,
+      customPassages,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -421,6 +512,27 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         }
       }
 
+      if (parsed.examResults && typeof parsed.examResults === 'object') {
+        for (const profileId of Object.keys(parsed.examResults)) {
+          const list = parsed.examResults[profileId];
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              if (item.id && item.profileId) {
+                await this.saveExamResult(item);
+              }
+            }
+          }
+        }
+      }
+
+      if (parsed.customPassages && Array.isArray(parsed.customPassages)) {
+        for (const passage of parsed.customPassages) {
+          if (passage.id && passage.text) {
+            await this.saveCustomPassage(passage);
+          }
+        }
+      }
+
       if (parsed.teacherSettings) {
         await this.saveTeacherSettings(parsed.teacherSettings);
       }
@@ -429,7 +541,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
         await this.setActiveProfileId(parsed.activeProfileId);
       }
 
-      return { success: true, message: `Successfully imported ${count} student profile(s) and LMS progress`, count };
+      return { success: true, message: `Successfully imported ${count} student profile(s) and exam records`, count };
     } catch (err: any) {
       return { success: false, message: `Import error: ${err.message || 'Corrupt JSON'}`, count: 0 };
     }

@@ -9,6 +9,7 @@ import {
   Layers,
   ArrowLeft,
   GraduationCap,
+  FileCheck,
 } from 'lucide-react';
 import { useProfile } from '@/context/ProfileContext';
 import { DashboardHeader } from './DashboardHeader';
@@ -29,6 +30,7 @@ import { CharacterLearning } from '@/components/character-learning/CharacterLear
 import { WordBuilder } from '@/components/word-builder/WordBuilder';
 import { PracticeEngine } from '@/components/practice/PracticeEngine';
 import { LmsDashboard } from '@/components/lms/LmsDashboard';
+import { ExamContainer } from '@/components/exam/ExamContainer';
 import { LessonCatalogService } from '@/services/lessons/lessonCatalog';
 import { StatisticsService, ProfileStatistics } from '@/services/statistics/statisticsService';
 import { LessonMetadata } from '@/types';
@@ -36,6 +38,7 @@ import { LessonMetadata } from '@/types';
 export type ActiveModuleView =
   | 'dashboard'
   | 'lms'
+  | 'exam'
   | 'practice'
   | 'character_learning'
   | 'word_builder'
@@ -124,6 +127,18 @@ export const StudentDashboard: React.FC = () => {
           >
             <GraduationCap className="w-3.5 h-3.5" />
             <span>LMS Course (160 पाठ)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('exam')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'exam'
+                ? 'bg-rose-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <FileCheck className="w-3.5 h-3.5" />
+            <span>Examination (परीक्षा)</span>
           </button>
 
           <button
@@ -229,6 +244,19 @@ export const StudentDashboard: React.FC = () => {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
             </button>
             <LmsDashboard />
+          </div>
+        )}
+
+        {/* Phase 4: Professional Typing Examination System */}
+        {activeView === 'exam' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-rose-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <ExamContainer />
           </div>
         )}
 

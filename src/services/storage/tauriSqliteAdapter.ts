@@ -6,6 +6,7 @@ import {
   CharacterMistakeStat,
   LmsTeacherSettings,
 } from '@/types/lms';
+import { ExamAttemptRecord, ExamPassage } from '@/types/exam';
 
 /**
  * Tauri SQLite Storage Adapter.
@@ -122,6 +123,21 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
       CREATE TABLE IF NOT EXISTS teacher_settings (
         key TEXT PRIMARY KEY,
         settingsJson TEXT NOT NULL
+      );
+    `);
+    // Phase 4 tables
+    await this.sqliteDb.execute(`
+      CREATE TABLE IF NOT EXISTS exam_results (
+        id TEXT PRIMARY KEY,
+        profileId TEXT NOT NULL,
+        recordJson TEXT NOT NULL,
+        completedAt INTEGER NOT NULL
+      );
+    `);
+    await this.sqliteDb.execute(`
+      CREATE TABLE IF NOT EXISTS custom_passages (
+        id TEXT PRIMARY KEY,
+        passageJson TEXT NOT NULL
       );
     `);
   }
@@ -490,6 +506,96 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
       }
     }
     return this.fallbackAdapter.saveTeacherSettings(settings);
+  }
+
+  // --- Phase 4 Examination Methods ---
+
+  public async getExamResults(profileId: string): Promise<ExamAttemptRecord[]> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select(
+          'SELECT recordJson FROM exam_results WHERE profileId = $1 ORDER BY completedAt DESC',
+          [profileId]
+        );
+        return rows.map((r) => JSON.parse(r.recordJson));
+      } catch {
+        return this.fallbackAdapter.getExamResults(profileId);
+      }
+    }
+    return this.fallbackAdapter.getExamResults(profileId);
+  }
+
+  public async getExamResultById(id: string): Promise<ExamAttemptRecord | null> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select(
+          'SELECT recordJson FROM exam_results WHERE id = $1 LIMIT 1',
+          [id]
+        );
+        if (rows.length > 0 && rows[0].recordJson) {
+          return JSON.parse(rows[0].recordJson);
+        }
+        return null;
+      } catch {
+        return this.fallbackAdapter.getExamResultById(id);
+      }
+    }
+    return this.fallbackAdapter.getExamResultById(id);
+  }
+
+  public async saveExamResult(record: ExamAttemptRecord): Promise<void> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        await this.sqliteDb.execute(
+          `INSERT OR REPLACE INTO exam_results (id, profileId, recordJson, completedAt)
+           VALUES ($1, $2, $3, $4)`,
+          [record.id, record.profileId, JSON.stringify(record), record.completedAt]
+        );
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.saveExamResult(record);
+  }
+
+  public async getCustomPassages(): Promise<ExamPassage[]> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select('SELECT passageJson FROM custom_passages');
+        return rows.map((r) => JSON.parse(r.passageJson));
+      } catch {
+        return this.fallbackAdapter.getCustomPassages();
+      }
+    }
+    return this.fallbackAdapter.getCustomPassages();
+  }
+
+  public async saveCustomPassage(passage: ExamPassage): Promise<void> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        await this.sqliteDb.execute(
+          `INSERT OR REPLACE INTO custom_passages (id, passageJson) VALUES ($1, $2)`,
+          [passage.id, JSON.stringify(passage)]
+        );
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.saveCustomPassage(passage);
+  }
+
+  public async deleteCustomPassage(id: string): Promise<void> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        await this.sqliteDb.execute('DELETE FROM custom_passages WHERE id = $1', [id]);
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.deleteCustomPassage(id);
   }
 
   public async exportAllData(): Promise<string> {

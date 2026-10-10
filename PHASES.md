@@ -74,20 +74,39 @@ This document outlines completed milestones and future implementation phases for
 
 ---
 
-## 🟡 Phase 4: Examination Mode, Lab Sync & Certification (Upcoming)
+## 🟢 Phase 4: Professional Typing Examination System (Completed)
+
+| Module / Requirement | Status | Verification / Artifact |
+| :--- | :--- | :--- |
+| **Configurable Test Setup** | ✅ Completed | `src/components/exam/ExamSetup.tsx` — 1-60m durations, 4 difficulty tiers, presets |
+| **Exam Interface & Strict Mode** | ✅ Completed | `src/components/exam/ExamScreen.tsx` — Distraction-free, strict exam masking |
+| **Monotonic Elapsed-Time Timer** | ✅ Completed | `src/services/exam/monotonicTimer.ts` — Drift-proof, visibility catchup, crash-safe |
+| **Sequence Alignment Scoring Engine** | ✅ Completed | `src/services/exam/scoringEngine.ts` — Needleman-Wunsch diffs, no error cascades |
+| **Official Scoring Formulas** | ✅ Completed | MP CPCT (5 char/word), SSC CGL/CHSL error %, High Court 1.5x strict, Standard |
+| **Results Analytics & Diff Viewer** | ✅ Completed | `src/components/exam/ExamResultView.tsx` — Color-coded token alignment diff view |
+| **Printable Scorecard Generator** | ✅ Completed | `src/services/exam/examReportService.ts` — Instant A4 printable grade scorecard |
+| **Excel-Compatible CSV Export** | ✅ Completed | RFC 4180 CSV export prepended with UTF-8 BOM (`\uFEFF`) for Hindi text in Excel |
+| **Teacher Custom Passage Creator** | ✅ Completed | `src/components/exam/CustomPassageModal.tsx` — Custom text creation & validation |
+| **Exam Attempt History Tracker** | ✅ Completed | `src/components/exam/ExamHistoryModal.tsx` — Attempt logs, filters, batch export |
+| **Storage Schema Upgrade (v3)** | ✅ Completed | IndexedDB (v3) & SQLite stores for `exam_results` and `custom_passages` |
+| **Automated Test Coverage** | ✅ Completed | 69 automated tests in `src/test/` passing 100% |
+
+---
+
+## 🟡 Phase 5: Remington GAIL Keyboard Engine & Multi-PC Lab Synchronization (Upcoming)
 
 | Module / Feature | Target Milestone | Description |
 | :--- | :--- | :--- |
-| **Strict CPCT / Court Exam Kiosk Mode** | Phase 4.1 | 10-15 minute exam countdown with locked backspace and official CPCT scoring |
-| **Key Error Frequency Heatmap** | Phase 4.2 | Visual keyboard heatmap identifying high-error keys for targeted practice |
-| **Printable Offline Speed Certificates** | Phase 4.3 | Offline PDF certificate generation stamped with student roll number and speed |
-| **Teacher Dashboard & Passage Uploader** | Phase 4.4 | Instructor PIN authentication, custom text upload, and batch student CSV import |
-| **Multi-PC Lab Synchronization** | Phase 4.5 | Local network LAN sync for computer lab instructor stations |
+| **Hindi Remington GAIL Engine** | Phase 5.1 | Authoritative Remington typewriter keyboard mapping with shift & alt combinations |
+| **Remington Virtual Keyboard Keymap** | Phase 5.2 | Visual Remington keymap with character positions and finger assignments |
+| **Multi-PC Lab Synchronization** | Phase 5.3 | Local network LAN sync for computer lab instructor station and student terminals |
+| **Instructor Batch Student Manager** | Phase 5.4 | Batch student enrollment, automated timetable scheduling, and roll-call exports |
+| **Exam Kiosk Mode & Anti-Cheating** | Phase 5.5 | Fullscreen lock, Alt+Tab / Windows key trap, and tamper-resistant offline logging |
 
 ---
 
 ## 🛡️ Data Migration & Compatibility Policy
 
-1. **Profile Protection**: User profiles, Phase 1/2 records, and Phase 3 LMS progress are never wiped during schema updates.
-2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 2`) and non-destructive migrations.
-3. **Offline Portability**: Students can export their `.json` profile backups and restore them on any computer lab terminal with full LMS progress intact.
+1. **Profile Protection**: User profiles, Phase 1/2 records, Phase 3 LMS progress, and Phase 4 examination attempts are never wiped during schema updates.
+2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 3`) and non-destructive migrations.
+3. **Offline Portability**: Students can export their `.json` profile backups and restore them on any computer lab terminal with full progress and exam scorecards intact.

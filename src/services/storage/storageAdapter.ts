@@ -4,6 +4,7 @@ import {
   CharacterMistakeStat,
   LmsTeacherSettings,
 } from '@/types/lms';
+import { ExamAttemptRecord, ExamPassage } from '@/types/exam';
 
 export interface StorageAdapter {
   init(): Promise<void>;
@@ -34,6 +35,14 @@ export interface StorageAdapter {
   saveMistakeStats(stats: CharacterMistakeStat[]): Promise<void>;
   getTeacherSettings(): Promise<LmsTeacherSettings>;
   saveTeacherSettings(settings: LmsTeacherSettings): Promise<void>;
+
+  // Phase 4: Examination System
+  getExamResults(profileId: string): Promise<ExamAttemptRecord[]>;
+  getExamResultById(id: string): Promise<ExamAttemptRecord | null>;
+  saveExamResult(record: ExamAttemptRecord): Promise<void>;
+  getCustomPassages(): Promise<ExamPassage[]>;
+  saveCustomPassage(passage: ExamPassage): Promise<void>;
+  deleteCustomPassage(id: string): Promise<void>;
 
   // Backup & Migration
   exportAllData(): Promise<string>;
