@@ -68,7 +68,10 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
         accuracy REAL NOT NULL,
         errorCount INTEGER NOT NULL,
         durationSeconds REAL NOT NULL,
-        completedAt INTEGER NOT NULL
+        completedAt INTEGER NOT NULL,
+        totalKeyStrokes INTEGER NOT NULL DEFAULT 0,
+        correctKeyStrokes INTEGER NOT NULL DEFAULT 0,
+        backspaceCount INTEGER NOT NULL DEFAULT 0
       );
     `);
     await this.sqliteDb.execute(`
@@ -249,6 +252,9 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
           errorCount: r.errorCount,
           durationSeconds: r.durationSeconds,
           completedAt: r.completedAt,
+          totalKeyStrokes: r.totalKeyStrokes ?? 0,
+          correctKeyStrokes: r.correctKeyStrokes ?? 0,
+          backspaceCount: r.backspaceCount ?? 0,
         }));
       } catch {
         return this.fallbackAdapter.getResults(profileId);
@@ -261,8 +267,8 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
         await this.sqliteDb.execute(
-          `INSERT OR REPLACE INTO results (id, profileId, lessonId, lessonTitle, layout, language, grossWpm, netWpm, accuracy, errorCount, durationSeconds, completedAt)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          `INSERT OR REPLACE INTO results (id, profileId, lessonId, lessonTitle, layout, language, grossWpm, netWpm, accuracy, errorCount, durationSeconds, completedAt, totalKeyStrokes, correctKeyStrokes, backspaceCount)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
           [
             result.id,
             result.profileId,
@@ -276,6 +282,9 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
             result.errorCount,
             result.durationSeconds,
             result.completedAt,
+            result.totalKeyStrokes ?? 0,
+            result.correctKeyStrokes ?? 0,
+            result.backspaceCount ?? 0,
           ]
         );
         return;
