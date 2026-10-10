@@ -7,6 +7,15 @@ import {
   LmsTeacherSettings,
 } from '@/types/lms';
 import { ExamAttemptRecord, ExamPassage } from '@/types/exam';
+import {
+  InstituteUser,
+  Batch,
+  InstituteStudent,
+  TestAssignment,
+  AttendanceRecord,
+  AuditLogEntry,
+  InstituteSettings,
+} from '@/types/institute';
 
 /**
  * Tauri SQLite Storage Adapter.
@@ -596,6 +605,108 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
       }
     }
     return this.fallbackAdapter.deleteCustomPassage(id);
+  }
+
+  // --- Phase 5: Institute & RBAC Methods ---
+
+  public async getInstituteUsers(): Promise<InstituteUser[]> {
+    return this.fallbackAdapter.getInstituteUsers();
+  }
+
+  public async getInstituteUserById(id: string): Promise<InstituteUser | null> {
+    return this.fallbackAdapter.getInstituteUserById(id);
+  }
+
+  public async getInstituteUserByUsername(username: string): Promise<InstituteUser | null> {
+    return this.fallbackAdapter.getInstituteUserByUsername(username);
+  }
+
+  public async saveInstituteUser(user: InstituteUser): Promise<void> {
+    return this.fallbackAdapter.saveInstituteUser(user);
+  }
+
+  public async deleteInstituteUser(id: string): Promise<void> {
+    return this.fallbackAdapter.deleteInstituteUser(id);
+  }
+
+  public async getBatches(): Promise<Batch[]> {
+    return this.fallbackAdapter.getBatches();
+  }
+
+  public async getBatchById(id: string): Promise<Batch | null> {
+    return this.fallbackAdapter.getBatchById(id);
+  }
+
+  public async saveBatch(batch: Batch): Promise<void> {
+    return this.fallbackAdapter.saveBatch(batch);
+  }
+
+  public async deleteBatch(id: string): Promise<void> {
+    return this.fallbackAdapter.deleteBatch(id);
+  }
+
+  public async getInstituteStudents(): Promise<InstituteStudent[]> {
+    return this.fallbackAdapter.getInstituteStudents();
+  }
+
+  public async getInstituteStudentById(id: string): Promise<InstituteStudent | null> {
+    return this.fallbackAdapter.getInstituteStudentById(id);
+  }
+
+  public async getInstituteStudentByRollNo(rollNo: string): Promise<InstituteStudent | null> {
+    return this.fallbackAdapter.getInstituteStudentByRollNo(rollNo);
+  }
+
+  public async saveInstituteStudent(student: InstituteStudent): Promise<void> {
+    return this.fallbackAdapter.saveInstituteStudent(student);
+  }
+
+  public async deleteInstituteStudent(id: string): Promise<void> {
+    return this.fallbackAdapter.deleteInstituteStudent(id);
+  }
+
+  public async getTestAssignments(): Promise<TestAssignment[]> {
+    return this.fallbackAdapter.getTestAssignments();
+  }
+
+  public async getTestAssignmentById(id: string): Promise<TestAssignment | null> {
+    return this.fallbackAdapter.getTestAssignmentById(id);
+  }
+
+  public async saveTestAssignment(assignment: TestAssignment): Promise<void> {
+    return this.fallbackAdapter.saveTestAssignment(assignment);
+  }
+
+  public async deleteTestAssignment(id: string): Promise<void> {
+    return this.fallbackAdapter.deleteTestAssignment(id);
+  }
+
+  public async getAttendanceRecords(batchId?: string, date?: string): Promise<AttendanceRecord[]> {
+    return this.fallbackAdapter.getAttendanceRecords(batchId, date);
+  }
+
+  public async saveAttendanceRecord(record: AttendanceRecord): Promise<void> {
+    return this.fallbackAdapter.saveAttendanceRecord(record);
+  }
+
+  public async saveAttendanceBatch(records: AttendanceRecord[]): Promise<void> {
+    return this.fallbackAdapter.saveAttendanceBatch(records);
+  }
+
+  public async getAuditLogs(limit?: number): Promise<AuditLogEntry[]> {
+    return this.fallbackAdapter.getAuditLogs(limit);
+  }
+
+  public async saveAuditLog(entry: AuditLogEntry): Promise<void> {
+    return this.fallbackAdapter.saveAuditLog(entry);
+  }
+
+  public async getInstituteSettings(): Promise<InstituteSettings> {
+    return this.fallbackAdapter.getInstituteSettings();
+  }
+
+  public async saveInstituteSettings(settings: InstituteSettings): Promise<void> {
+    return this.fallbackAdapter.saveInstituteSettings(settings);
   }
 
   public async exportAllData(): Promise<string> {

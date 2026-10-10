@@ -5,6 +5,63 @@ All notable changes to **Typing Master Pro** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - Phase 5: Teacher Admin & Institute Management - 2026-10-10
+
+### Added
+- **Module 1: Role-Based Access Control & Cryptographic Security**:
+  - Three distinct roles: Institute Admin, Teacher, and Student with explicit permission guards.
+  - Offline cryptographic security service (`CryptoService`): Salted password and PIN hashing using PBKDF2/SHA-256 with key stretching.
+  - Zero plaintext credential storage. Constant-time comparison (`constantTimeCompare`) preventing timing attacks.
+  - Session lifecycle management (`RbacService`): session locking, auto-timeout expiration, secure PIN unlock, and administrator credential reset workflow.
+  - Immutable local audit logging (`AuditService`) recording all administrative and academic actions.
+- **Module 2: Institute Administration Dashboard (`InstituteDashboardView.tsx`)**:
+  - Live local analytics: Total students, active batches, assigned faculty, completed LMS lessons, examinations conducted, average speed (WPM), and average accuracy.
+  - "Students Needing Remediation" dynamic detection identifying students with low test accuracy or sub-threshold speed.
+  - Real-time audit log activity timeline.
+- **Module 3: Student Management & Roster (`StudentManagementView.tsx`)**:
+  - Student registration and profile editing with duplicate roll number detection.
+  - Soft-delete archiving and 1-click restoration protecting historical data from accidental loss.
+  - Permanent delete safeguard requiring explicit instructor confirmation.
+  - Search & filtering by batch, status (active/archived), name, and roll number.
+  - Student Academic Dossier & Performance Modal with one-click official report card printing.
+  - Bulk RFC 4180 CSV roster import and Excel-compatible CSV export with UTF-8 BOM (`\uFEFF`).
+- **Module 4: Batch Management & Shift Schedules (`BatchManagementView.tsx`)**:
+  - Full batch lifecycle: creation, editing, teacher assignment, course track allocation, and seat capacity limits.
+  - Shift scheduling: Morning, Afternoon, Evening, and Custom time slot configurations.
+  - Batch capacity progress bars and active student rosters.
+- **Module 5: Isolated Faculty Portal (`TeacherDashboardView.tsx`)**:
+  - Scoped dashboard for instructors isolating unauthorized batches and institute-level settings.
+  - Direct access to assigned students, quick attendance registers, and test assignments.
+- **Module 6: Test Assignment System (`TestAssignmentsView.tsx`)**:
+  - Test assignment creator reusing Phase 4 examination engines, authentic Devanagari passages, and official scoring policies (CPCT, SSC, High Court, Standard).
+  - Target batch allocation, completion due dates, and minimum pass thresholds.
+  - Assignment submissions viewer with student scores, Net WPM, accuracy, and pass/fail rankings.
+- **Module 7: Daily Attendance Register (`AttendanceRegisterView.tsx`)**:
+  - Daily batch attendance register with date selector and quick status toggles (Present, Absent, Late).
+  - One-click "Mark All Present" batch action.
+  - Monthly attendance percentage summaries and daily CSV export with UTF-8 BOM.
+- **Module 8: Reports & Analytics Hub (`InstituteReportsView.tsx`)**:
+  - Cross-batch performance benchmark matrix comparing average speed, accuracy, and pass rates.
+  - Printable official student report card dossier (`window.print()`).
+  - Batch comparison CSV export for spreadsheet analysis.
+- **Module 9: Disaster Recovery & Verified Backup (`BackupRestoreView.tsx`)**:
+  - Full institute archive export bundled with SHA-256 cryptographic tamper-detection checksum.
+  - Backup file validation & inspection preview displaying exact record counts before restoration.
+  - Safe restoration preventing silent overwriting of active databases.
+- **Module 10: Multi-Terminal Lab LAN Architecture Specification (`lanArchitectureSpec.ts`, `LanSpecView.tsx`)**:
+  - Formal technical whitepaper and protocol specification for computer lab local area networks.
+  - Central Lab Server architecture, UDP broadcast discovery (port 8766), client outbox queuing, and vector clock conflict resolution.
+- **Module 11: Master Portal UI & Student Dashboard Integration (`InstitutePortal.tsx`)**:
+  - Responsive tabbed desktop administration portal with session lock/unlock modal.
+  - Seamless toggle between Student Mode and Institute Portal with role verification.
+- **Module 12: Storage Schema Upgrade (v4) & Automated Tests**:
+  - Upgraded IndexedDB to `DB_VERSION = 4` with stores for `institute_users`, `batches`, `institute_students`, `test_assignments`, `attendance`, `audit_logs`, `institute_settings`.
+  - SQLite adapter updated with corresponding tables and delegating methods.
+  - 18 new automated tests across `cryptoService.test.ts`, `rbacService.test.ts`, `instituteService.test.ts`, `attendanceAssignment.test.ts`, and `institutePersistence.test.ts`.
+  - Total test suite now contains 87 passing tests across 20 test files (100% passing).
+
+---
+
 ## [4.0.0] - Phase 4: Professional Typing Examination System - 2026-10-10
 
 ### Added

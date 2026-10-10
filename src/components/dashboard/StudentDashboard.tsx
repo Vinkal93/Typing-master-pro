@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   GraduationCap,
   FileCheck,
+  Building2,
 } from 'lucide-react';
 import { useProfile } from '@/context/ProfileContext';
 import { DashboardHeader } from './DashboardHeader';
@@ -31,6 +32,9 @@ import { WordBuilder } from '@/components/word-builder/WordBuilder';
 import { PracticeEngine } from '@/components/practice/PracticeEngine';
 import { LmsDashboard } from '@/components/lms/LmsDashboard';
 import { ExamContainer } from '@/components/exam/ExamContainer';
+import { InstitutePortal } from '@/components/institute/InstitutePortal';
+import { AuthModal } from '@/components/institute/AuthModal';
+import { AuthSession } from '@/types/institute';
 import { LessonCatalogService } from '@/services/lessons/lessonCatalog';
 import { StatisticsService, ProfileStatistics } from '@/services/statistics/statisticsService';
 import { LessonMetadata } from '@/types';
@@ -39,6 +43,7 @@ export type ActiveModuleView =
   | 'dashboard'
   | 'lms'
   | 'exam'
+  | 'institute'
   | 'practice'
   | 'character_learning'
   | 'word_builder'
@@ -70,6 +75,10 @@ export const StudentDashboard: React.FC = () => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<LessonMetadata | null>(null);
 
+  // Phase 5: Institute Authentication Session State
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   const fetchStats = useCallback(async () => {
     if (!activeProfile) return;
     try {
@@ -96,7 +105,10 @@ export const StudentDashboard: React.FC = () => {
       {/* Top Navigation & Profile Switcher */}
       <DashboardHeader
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenTeacherMode={() => setIsTeacherModeOpen(true)}
+        onOpenTeacherMode={() => {
+          if (authSession) setActiveView('institute');
+          else setIsAuthModalOpen(true);
+        }}
         onOpenKeyboardRef={() => setActiveView('virtual_keyboard')}
         onOpenProfileManager={() => setIsProfileManagerOpen(true)}
         onAddNewStudent={() => setIsAddStudentOpen(true)}
@@ -139,6 +151,21 @@ export const StudentDashboard: React.FC = () => {
           >
             <FileCheck className="w-3.5 h-3.5" />
             <span>Examination (परीक्षा)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (authSession) setActiveView('institute');
+              else setIsAuthModalOpen(true);
+            }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'institute'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Institute (प्रबंधन)</span>
           </button>
 
           <button
@@ -260,6 +287,16 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Phase 5: Teacher Admin & Institute Management */}
+        {activeView === 'institute' && authSession && (
+          <div className="space-y-4">
+            <InstitutePortal
+              initialSession={authSession}
+              onExitToStudentDashboard={() => setActiveView('dashboard')}
+            />
+          </div>
+        )}
+
         {/* Module 5: Practice Engine */}
         {activeView === 'practice' && (
           <div className="space-y-4">
@@ -317,6 +354,15 @@ export const StudentDashboard: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthenticated={(session) => {
+          setAuthSession(session);
+          setActiveView('institute');
+        }}
       />
 
       <TeacherModeModal

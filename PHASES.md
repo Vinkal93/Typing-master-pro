@@ -93,20 +93,43 @@ This document outlines completed milestones and future implementation phases for
 
 ---
 
-## 🟡 Phase 5: Remington GAIL Keyboard Engine & Multi-PC Lab Synchronization (Upcoming)
+---
+
+## 🟢 Phase 5: Teacher Admin & Institute Management (Completed)
+
+| Module / Requirement | Status | Verification / Artifact |
+| :--- | :--- | :--- |
+| **Role-Based Access Control & Cryptographic Security** | ✅ Completed | `src/services/security/cryptoService.ts`, `rbacService.ts` — Salted PBKDF2/SHA-256 |
+| **Institute Administration Dashboard** | ✅ Completed | `src/components/institute/InstituteDashboardView.tsx` — Real local DB metrics |
+| **Student Roster & Management** | ✅ Completed | `src/components/institute/StudentManagementView.tsx` — Duplicate protection, soft delete |
+| **Bulk CSV Import & Export** | ✅ Completed | RFC 4180 parsing + UTF-8 BOM (`\uFEFF`) export for Excel compatibility |
+| **Batch Management & Shift Schedules** | ✅ Completed | `src/components/institute/BatchManagementView.tsx` — Morning, Afternoon, Evening, Custom |
+| **Isolated Faculty Portal** | ✅ Completed | `src/components/institute/TeacherDashboardView.tsx` — Teacher scoped batches & roster |
+| **Test Assignment System** | ✅ Completed | `src/components/institute/TestAssignmentsView.tsx` — Reuses Phase 4 examination engines |
+| **Daily Attendance Register** | ✅ Completed | `src/components/institute/AttendanceRegisterView.tsx` — Present/Absent/Late & 1-click batch mark |
+| **Reports & Analytics Hub** | ✅ Completed | `src/components/institute/InstituteReportsView.tsx` — Cross-batch matrix & printable dossier |
+| **Disaster Recovery & Backup Preview** | ✅ Completed | `src/services/institute/backupRestoreService.ts` — SHA-256 checksum & preview |
+| **Multi-Terminal Lab LAN Whitepaper** | ✅ Completed | `src/services/institute/lanArchitectureSpec.ts`, `LanSpecView.tsx` — LAN protocol blueprint |
+| **Master Institute Portal Integration** | ✅ Completed | `src/components/institute/InstitutePortal.tsx`, `AuthModal.tsx` — Session lock/unlock |
+| **Storage Schema Upgrade (v4)** | ✅ Completed | IndexedDB (v4) & SQLite stores for `institute_users`, `batches`, `students`, `attendance` |
+| **Automated Test Coverage** | ✅ Completed | 87 automated tests in `src/test/` passing 100% |
+
+---
+
+## 🟡 Phase 6: Hindi Remington GAIL Keyboard Engine & Strict Kiosk Lockdown (Upcoming)
 
 | Module / Feature | Target Milestone | Description |
 | :--- | :--- | :--- |
-| **Hindi Remington GAIL Engine** | Phase 5.1 | Authoritative Remington typewriter keyboard mapping with shift & alt combinations |
-| **Remington Virtual Keyboard Keymap** | Phase 5.2 | Visual Remington keymap with character positions and finger assignments |
-| **Multi-PC Lab Synchronization** | Phase 5.3 | Local network LAN sync for computer lab instructor station and student terminals |
-| **Instructor Batch Student Manager** | Phase 5.4 | Batch student enrollment, automated timetable scheduling, and roll-call exports |
-| **Exam Kiosk Mode & Anti-Cheating** | Phase 5.5 | Fullscreen lock, Alt+Tab / Windows key trap, and tamper-resistant offline logging |
+| **Hindi Remington GAIL Layout Engine** | Phase 6.1 | Authoritative Remington typewriter keyboard mapping with shift & alt combinations |
+| **Remington Interactive Virtual Keyboard** | Phase 6.2 | Full-size visual Remington keymap with character positions and finger assignments |
+| **Remington Character Drills & Word Builder** | Phase 6.3 | Progressive Remington drills matching CPCT & High Court typewriter syllabus |
+| **Strict Examination Kiosk Lockdown** | Phase 6.4 | Fullscreen lock, Alt+Tab / Windows key intercept, and offline cheating detection |
+| **Live Multi-PC Socket Sync Engine** | Phase 6.5 | Implementation of the Phase 5 LAN protocol socket daemon on port 8765 |
 
 ---
 
 ## 🛡️ Data Migration & Compatibility Policy
 
-1. **Profile Protection**: User profiles, Phase 1/2 records, Phase 3 LMS progress, and Phase 4 examination attempts are never wiped during schema updates.
-2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 3`) and non-destructive migrations.
-3. **Offline Portability**: Students can export their `.json` profile backups and restore them on any computer lab terminal with full progress and exam scorecards intact.
+1. **Profile Protection**: User profiles, Phase 1/2 records, Phase 3 LMS progress, Phase 4 exam scorecards, and Phase 5 institute batches/attendance are never wiped during schema updates.
+2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 4`) and non-destructive migrations.
+3. **Offline Portability**: Students and instructors can export their `.json` profile backups and institute archives and restore them on any computer lab terminal with full progress intact.
