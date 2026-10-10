@@ -55,21 +55,39 @@ This document outlines completed milestones and future implementation phases for
 
 ---
 
-## 🟡 Phase 3: Advanced Analytics, Examination Mode & Certification (Upcoming)
+## 🟢 Phase 3: Smart Learning Management System (LMS) (Completed)
+
+| Module / Requirement | Status | Verification / Artifact |
+| :--- | :--- | :--- |
+| **160 Genuine Educational Lessons** | ✅ Completed | Level 1: 25, Level 2: 30, Level 3: 30, Level 4: 25, Level 5: 25, Level 6: 25 |
+| **Curriculum Service & Sequential Indexing** | ✅ Completed | `src/services/curriculum/curriculumService.ts` — Unifies all 160 lessons |
+| **Curriculum Integrity Validator** | ✅ Completed | `src/services/curriculum/curriculumValidator.ts` — Zero defects across all lessons |
+| **4-Stage Learning Player** | ✅ Completed | `src/components/lms/LessonPlayer.tsx` — Learn → Guided → Independent → Test |
+| **Progression & Unlock Engine** | ✅ Completed | `src/services/lms/progressionService.ts` — Progressive unlocking by prerequisites |
+| **Tiered Passing Criteria** | ✅ Completed | L1: 85%, L2: 90%, L3: 92%/15wpm, L4: 94%/20wpm, L5: 95%/25wpm, L6: 97%/30wpm |
+| **Offline Adaptive Practice Engine** | ✅ Completed | `src/services/lms/adaptivePracticeService.ts` — Local heuristic weak key drill generator |
+| **Adaptive Revision Center** | ✅ Completed | `src/components/lms/AdaptiveRevisionCenter.tsx` — Remediation drill launcher |
+| **Teacher Control Panel** | ✅ Completed | `src/components/lms/TeacherLmsModal.tsx` — Unlock all lessons override & custom thresholds |
+| **LMS Dashboard UI** | ✅ Completed | `src/components/lms/LmsDashboard.tsx` — Level selector, stats, continue learning |
+| **Crash-Safe Progress Storage** | ✅ Completed | IndexedDB (v2) & SQLite tables for `lms_progress`, `mistake_stats`, `teacher_settings` |
+| **Comprehensive Automated Test Coverage** | ✅ Completed | 50 automated tests in `src/test/` covering curriculum, unlocks, persistence, UI |
+
+---
+
+## 🟡 Phase 4: Examination Mode, Lab Sync & Certification (Upcoming)
 
 | Module / Feature | Target Milestone | Description |
 | :--- | :--- | :--- |
-| **Speed & Accuracy Progression Charts** | Phase 3.1 | Historical SVG charts showing student WPM progression across drills |
-| **Key Error Frequency Heatmap** | Phase 3.2 | Visual keyboard heatmap identifying high-error keys for targeted practice |
-| **Strict CPCT / Court Exam Kiosk Mode** | Phase 3.3 | 10-minute timer exam mode with locked backspace and official evaluation rules |
-| **Teacher Dashboard & Passage Uploader** | Phase 3.4 | Instructor PIN authentication, custom text upload, and batch student CSV import |
-| **Printable Offline Speed Certificates** | Phase 3.5 | Offline PDF certificate generation stamped with student roll number and speed |
-| **Multi-PC Lab Synchronization** | Phase 3.6 | Local network LAN sync for computer lab instructor stations |
+| **Strict CPCT / Court Exam Kiosk Mode** | Phase 4.1 | 10-15 minute exam countdown with locked backspace and official CPCT scoring |
+| **Key Error Frequency Heatmap** | Phase 4.2 | Visual keyboard heatmap identifying high-error keys for targeted practice |
+| **Printable Offline Speed Certificates** | Phase 4.3 | Offline PDF certificate generation stamped with student roll number and speed |
+| **Teacher Dashboard & Passage Uploader** | Phase 4.4 | Instructor PIN authentication, custom text upload, and batch student CSV import |
+| **Multi-PC Lab Synchronization** | Phase 4.5 | Local network LAN sync for computer lab instructor stations |
 
 ---
 
 ## 🛡️ Data Migration & Compatibility Policy
 
-1. **Profile Protection**: User profiles and test histories are never wiped or reset during schema updates.
-2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`schema_version`) and non-destructive migrations.
-3. **Offline Portability**: Students can export their `.json` profile backups and restore them on any computer lab terminal without loss of streak or test records.
+1. **Profile Protection**: User profiles, Phase 1/2 records, and Phase 3 LMS progress are never wiped during schema updates.
+2. **Schema Versioning**: All IndexedDB and SQLite stores implement explicit version checking (`DB_VERSION = 2`) and non-destructive migrations.
+3. **Offline Portability**: Students can export their `.json` profile backups and restore them on any computer lab terminal with full LMS progress intact.

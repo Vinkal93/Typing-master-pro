@@ -83,6 +83,14 @@ class AudioService {
     }
   }
 
+  public playKeyStroke(): void {
+    this.playKeyClick();
+  }
+
+  public playError(): void {
+    this.playErrorBeep();
+  }
+
   /**
    * Synthesizes a brief success chime when a lesson or word is completed.
    */

@@ -8,6 +8,7 @@ import {
   Sparkles,
   Layers,
   ArrowLeft,
+  GraduationCap,
 } from 'lucide-react';
 import { useProfile } from '@/context/ProfileContext';
 import { DashboardHeader } from './DashboardHeader';
@@ -27,12 +28,14 @@ import { VirtualKeyboard } from '@/components/keyboard/VirtualKeyboard';
 import { CharacterLearning } from '@/components/character-learning/CharacterLearning';
 import { WordBuilder } from '@/components/word-builder/WordBuilder';
 import { PracticeEngine } from '@/components/practice/PracticeEngine';
+import { LmsDashboard } from '@/components/lms/LmsDashboard';
 import { LessonCatalogService } from '@/services/lessons/lessonCatalog';
 import { StatisticsService, ProfileStatistics } from '@/services/statistics/statisticsService';
 import { LessonMetadata } from '@/types';
 
 export type ActiveModuleView =
   | 'dashboard'
+  | 'lms'
   | 'practice'
   | 'character_learning'
   | 'word_builder'
@@ -109,6 +112,18 @@ export const StudentDashboard: React.FC = () => {
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
             <span>Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('lms')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'lms'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>LMS Course (160 पाठ)</span>
           </button>
 
           <button
@@ -201,6 +216,19 @@ export const StudentDashboard: React.FC = () => {
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Phase 3: Smart LMS Master Course */}
+        {activeView === 'lms' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <LmsDashboard />
           </div>
         )}
 

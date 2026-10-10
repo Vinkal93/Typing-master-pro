@@ -22,7 +22,7 @@ interface ProfileContextType {
   setIsOnboardingRequired: (required: boolean) => void;
 }
 
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+export const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [activeProfile, setActiveProfile] = useState<StudentProfile | null>(null);

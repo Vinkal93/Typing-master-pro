@@ -5,6 +5,47 @@ All notable changes to **Typing Master Pro** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - Phase 3: Smart Learning Management System (LMS) - 2026-10-10
+
+### Added
+- **Structured 6-Level Curriculum (160 Genuine Lessons)**:
+  - Level 1: Absolute Beginner — 25 lessons (`l1_01_right_index_ra` to `l1_25_level1_qualifying_exam`).
+  - Level 2: Basic Typing — 30 lessons (`l2_01_top_matra_aa` to `l2_30_level2_qualifying_exam`).
+  - Level 3: Word Master — 30 lessons (`l3_01_halant_mechanics_intro` to `l3_30_level3_qualifying_exam`).
+  - Level 4: Sentence Expert — 25 lessons (`l4_01_sentence_structure_intro` to `l4_25_level4_qualifying_exam`).
+  - Level 5: Professional Typist — 25 lessons (`l5_01_office_memo_format` to `l5_25_level5_qualifying_exam`).
+  - Level 6: Ultra Advanced — 25 lessons (`l6_01_complex_sanskrit_conjuncts_1` to `l6_25_level6_grand_master_certification`).
+- **Master Curriculum Architecture**:
+  - `src/services/curriculum/curriculumService.ts`: Central catalog indexing all 160 lessons, level metadata, and sequential navigation.
+  - `src/services/curriculum/curriculumValidator.ts`: Automated integrity checker ensuring zero duplicate IDs, valid prerequisites, and complete stages.
+- **4-Stage Learning Flow (`LessonPlayer.tsx`)**:
+  - Stage A (Learn): Pedagogical theory, finger instructions, demo keys visual, and technique tips.
+  - Stage B (Guided Practice): Target text typing with virtual keyboard expected-key highlighting and real-time audio clicks.
+  - Stage C (Independent Practice): Muscle memory development without virtual key hints.
+  - Stage D (Lesson Test): Timed evaluation against level passing criteria with accuracy, Net WPM, and error analysis.
+- **Progression & Unlock Engine (`progressionService.ts`)**:
+  - Progressive unlocking strictly requiring completion of prerequisites.
+  - Configurable passing criteria thresholds: L1: 85%, L2: 90%, L3: 92%/15wpm, L4: 94%/20wpm, L5: 95%/25wpm, L6: 97%/30wpm.
+  - Summary metrics computation (total completed, average accuracy, average WPM, streak).
+- **Offline Adaptive Practice Engine (`adaptivePracticeService.ts`)**:
+  - Mistake tracking per character and physical key.
+  - Heuristic local dynamic drill generation focusing on high-error keys without AI or external network calls.
+- **Adaptive Revision Center (`AdaptiveRevisionCenter.tsx`)**:
+  - Remediation hub highlighting top weak keys and launching targeted drills.
+- **Teacher Control Panel (`TeacherLmsModal.tsx`)**:
+  - Instant toggle to unlock all 160 lessons for institute testing.
+  - Configurable passing criteria thresholds per level with instant persistence.
+- **LMS Curriculum Dashboard (`LmsDashboard.tsx`)**:
+  - Interactive level selector tabs, progress bars, continue learning card, and lesson card grid.
+- **Storage Layer Schema Upgrade (v2)**:
+  - Non-destructive migration preserving all student profiles, test histories, and preferences.
+  - New stores/tables for `lms_progress`, `mistake_stats`, and `teacher_settings` across IndexedDB and SQLite.
+  - Backup & JSON export/import upgraded to version 2 payload.
+- **Automated Testing Suite**:
+  - 50 passing unit and integration tests covering curriculum integrity, unlocks, adaptive generation, persistence, and UI.
+
+---
+
 ## [2.0.0] - Phase 2: Hindi InScript Keyboard Engine - 2026-10-10
 
 ### Added

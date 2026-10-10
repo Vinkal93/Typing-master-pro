@@ -1,6 +1,11 @@
 import { StorageAdapter } from './storageAdapter';
 import { IndexedDBStorageAdapter } from './indexedDbAdapter';
 import { StudentProfile, PracticeResult, DailyProgress } from '@/types';
+import {
+  StudentLessonProgress,
+  CharacterMistakeStat,
+  LmsTeacherSettings,
+} from '@/types/lms';
 
 /**
  * Tauri SQLite Storage Adapter.
@@ -58,15 +63,12 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
         lessonTitle TEXT NOT NULL,
         layout TEXT NOT NULL,
         language TEXT NOT NULL,
-        completedAt INTEGER NOT NULL,
-        durationSeconds REAL NOT NULL,
         grossWpm REAL NOT NULL,
         netWpm REAL NOT NULL,
         accuracy REAL NOT NULL,
-        totalKeyStrokes INTEGER NOT NULL,
-        correctKeyStrokes INTEGER NOT NULL,
         errorCount INTEGER NOT NULL,
-        backspaceCount INTEGER NOT NULL
+        durationSeconds REAL NOT NULL,
+        completedAt INTEGER NOT NULL
       );
     `);
     await this.sqliteDb.execute(`
@@ -83,6 +85,40 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
       CREATE TABLE IF NOT EXISTS app_meta (
         key TEXT PRIMARY KEY,
         value TEXT
+      );
+    `);
+    // Phase 3 tables
+    await this.sqliteDb.execute(`
+      CREATE TABLE IF NOT EXISTS lms_progress (
+        id TEXT PRIMARY KEY,
+        profileId TEXT NOT NULL,
+        lessonId TEXT NOT NULL,
+        levelId INTEGER NOT NULL,
+        isUnlocked INTEGER NOT NULL,
+        isCompleted INTEGER NOT NULL,
+        stageReached TEXT NOT NULL,
+        bestAccuracy REAL NOT NULL,
+        bestNetWpm REAL NOT NULL,
+        attemptsCount INTEGER NOT NULL,
+        lastAttemptAt INTEGER NOT NULL,
+        completedAt INTEGER
+      );
+    `);
+    await this.sqliteDb.execute(`
+      CREATE TABLE IF NOT EXISTS mistake_stats (
+        id TEXT PRIMARY KEY,
+        profileId TEXT NOT NULL,
+        char TEXT NOT NULL,
+        keyCode TEXT NOT NULL,
+        errorCount INTEGER NOT NULL,
+        totalAttempts INTEGER NOT NULL,
+        lastErrorAt INTEGER NOT NULL
+      );
+    `);
+    await this.sqliteDb.execute(`
+      CREATE TABLE IF NOT EXISTS teacher_settings (
+        key TEXT PRIMARY KEY,
+        settingsJson TEXT NOT NULL
       );
     `);
   }
@@ -146,8 +182,8 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
           ]
         );
         return;
-      } catch (err) {
-        console.warn('SQLite save error, fallback to IndexedDB:', err);
+      } catch {
+        // Fall back to IDB
       }
     }
     return this.fallbackAdapter.saveProfile(profile);
@@ -159,13 +195,11 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
         await this.sqliteDb.execute('DELETE FROM profiles WHERE id = $1', [id]);
         await this.sqliteDb.execute('DELETE FROM results WHERE profileId = $1', [id]);
         await this.sqliteDb.execute('DELETE FROM daily_progress WHERE profileId = $1', [id]);
-        const activeId = await this.getActiveProfileId();
-        if (activeId === id) {
-          await this.setActiveProfileId(null);
-        }
+        await this.sqliteDb.execute('DELETE FROM lms_progress WHERE profileId = $1', [id]);
+        await this.sqliteDb.execute('DELETE FROM mistake_stats WHERE profileId = $1', [id]);
         return;
-      } catch (err) {
-        console.warn('SQLite delete error, fallback to IndexedDB:', err);
+      } catch {
+        // Fall back
       }
     }
     return this.fallbackAdapter.deleteProfile(id);
@@ -174,8 +208,11 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
   public async getActiveProfileId(): Promise<string | null> {
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
-        const rows: any[] = await this.sqliteDb.select("SELECT value FROM app_meta WHERE key = 'active_profile_id'");
-        return rows.length > 0 ? rows[0].value : null;
+        const rows: any[] = await this.sqliteDb.select('SELECT value FROM app_meta WHERE key = $1', ['active_profile_id']);
+        if (rows.length > 0 && rows[0].value) {
+          return rows[0].value;
+        }
+        return null;
       } catch {
         return this.fallbackAdapter.getActiveProfileId();
       }
@@ -186,12 +223,10 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
   public async setActiveProfileId(id: string | null): Promise<void> {
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
-        await this.sqliteDb.execute(
-          "INSERT OR REPLACE INTO app_meta (key, value) VALUES ('active_profile_id', $1)",
-          [id]
-        );
-      } catch (err) {
-        console.warn('SQLite setActiveProfileId error:', err);
+        await this.sqliteDb.execute('INSERT OR REPLACE INTO app_meta (key, value) VALUES ($1, $2)', ['active_profile_id', id]);
+        return;
+      } catch {
+        // Fall back
       }
     }
     return this.fallbackAdapter.setActiveProfileId(id);
@@ -200,11 +235,21 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
   public async getResults(profileId: string): Promise<PracticeResult[]> {
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
-        const rows: any[] = await this.sqliteDb.select(
-          'SELECT * FROM results WHERE profileId = $1 ORDER BY completedAt DESC',
-          [profileId]
-        );
-        return rows as PracticeResult[];
+        const rows: any[] = await this.sqliteDb.select('SELECT * FROM results WHERE profileId = $1 ORDER BY completedAt DESC', [profileId]);
+        return rows.map((r) => ({
+          id: r.id,
+          profileId: r.profileId,
+          lessonId: r.lessonId,
+          lessonTitle: r.lessonTitle,
+          layout: r.layout,
+          language: r.language,
+          grossWpm: r.grossWpm,
+          netWpm: r.netWpm,
+          accuracy: r.accuracy,
+          errorCount: r.errorCount,
+          durationSeconds: r.durationSeconds,
+          completedAt: r.completedAt,
+        }));
       } catch {
         return this.fallbackAdapter.getResults(profileId);
       }
@@ -216,8 +261,8 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
         await this.sqliteDb.execute(
-          `INSERT OR REPLACE INTO results (id, profileId, lessonId, lessonTitle, layout, language, completedAt, durationSeconds, grossWpm, netWpm, accuracy, totalKeyStrokes, correctKeyStrokes, errorCount, backspaceCount)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          `INSERT OR REPLACE INTO results (id, profileId, lessonId, lessonTitle, layout, language, grossWpm, netWpm, accuracy, errorCount, durationSeconds, completedAt)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
           [
             result.id,
             result.profileId,
@@ -225,33 +270,27 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
             result.lessonTitle,
             result.layout,
             result.language,
-            result.completedAt,
-            result.durationSeconds,
             result.grossWpm,
             result.netWpm,
             result.accuracy,
-            result.totalKeyStrokes,
-            result.correctKeyStrokes,
             result.errorCount,
-            result.backspaceCount,
+            result.durationSeconds,
+            result.completedAt,
           ]
         );
         return;
-      } catch (err) {
-        console.warn('SQLite saveResult error:', err);
+      } catch {
+        // Fall back
       }
     }
     return this.fallbackAdapter.saveResult(result);
   }
 
   public async getDailyProgress(profileId: string, date: string): Promise<DailyProgress | null> {
+    const key = `${profileId}_${date}`;
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
-        const key = `${profileId}_${date}`;
-        const rows: any[] = await this.sqliteDb.select(
-          'SELECT * FROM daily_progress WHERE key = $1',
-          [key]
-        );
+        const rows: any[] = await this.sqliteDb.select('SELECT * FROM daily_progress WHERE key = $1', [key]);
         if (rows.length === 0) return null;
         const r = rows[0];
         return {
@@ -269,9 +308,9 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
   }
 
   public async saveDailyProgress(progress: DailyProgress): Promise<void> {
+    const key = `${progress.profileId}_${progress.date}`;
     if (this.isTauriAvailable && this.sqliteDb) {
       try {
-        const key = `${progress.profileId}_${progress.date}`;
         await this.sqliteDb.execute(
           `INSERT OR REPLACE INTO daily_progress (key, profileId, date, minutesPracticed, lessonsCompleted, goalAchieved)
            VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -285,11 +324,163 @@ export class TauriSQLiteStorageAdapter implements StorageAdapter {
           ]
         );
         return;
-      } catch (err) {
-        console.warn('SQLite saveDailyProgress error:', err);
+      } catch {
+        // Fall back
       }
     }
     return this.fallbackAdapter.saveDailyProgress(progress);
+  }
+
+  // --- Phase 3 LMS Methods ---
+
+  public async getLessonProgress(profileId: string): Promise<StudentLessonProgress[]> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select('SELECT * FROM lms_progress WHERE profileId = $1', [profileId]);
+        return rows.map((r) => ({
+          id: r.id,
+          profileId: r.profileId,
+          lessonId: r.lessonId,
+          levelId: r.levelId,
+          isUnlocked: Boolean(r.isUnlocked),
+          isCompleted: Boolean(r.isCompleted),
+          stageReached: r.stageReached,
+          bestAccuracy: r.bestAccuracy,
+          bestNetWpm: r.bestNetWpm,
+          attemptsCount: r.attemptsCount,
+          lastAttemptAt: r.lastAttemptAt,
+          completedAt: r.completedAt || undefined,
+        }));
+      } catch {
+        return this.fallbackAdapter.getLessonProgress(profileId);
+      }
+    }
+    return this.fallbackAdapter.getLessonProgress(profileId);
+  }
+
+  public async getLessonProgressById(profileId: string, lessonId: string): Promise<StudentLessonProgress | null> {
+    const id = `${profileId}_${lessonId}`;
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select('SELECT * FROM lms_progress WHERE id = $1 LIMIT 1', [id]);
+        if (rows.length === 0) return null;
+        const r = rows[0];
+        return {
+          id: r.id,
+          profileId: r.profileId,
+          lessonId: r.lessonId,
+          levelId: r.levelId,
+          isUnlocked: Boolean(r.isUnlocked),
+          isCompleted: Boolean(r.isCompleted),
+          stageReached: r.stageReached,
+          bestAccuracy: r.bestAccuracy,
+          bestNetWpm: r.bestNetWpm,
+          attemptsCount: r.attemptsCount,
+          lastAttemptAt: r.lastAttemptAt,
+          completedAt: r.completedAt || undefined,
+        };
+      } catch {
+        return this.fallbackAdapter.getLessonProgressById(profileId, lessonId);
+      }
+    }
+    return this.fallbackAdapter.getLessonProgressById(profileId, lessonId);
+  }
+
+  public async saveLessonProgress(progress: StudentLessonProgress): Promise<void> {
+    const id = progress.id || `${progress.profileId}_${progress.lessonId}`;
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        await this.sqliteDb.execute(
+          `INSERT OR REPLACE INTO lms_progress (id, profileId, lessonId, levelId, isUnlocked, isCompleted, stageReached, bestAccuracy, bestNetWpm, attemptsCount, lastAttemptAt, completedAt)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            id,
+            progress.profileId,
+            progress.lessonId,
+            progress.levelId,
+            progress.isUnlocked ? 1 : 0,
+            progress.isCompleted ? 1 : 0,
+            progress.stageReached,
+            progress.bestAccuracy,
+            progress.bestNetWpm,
+            progress.attemptsCount,
+            progress.lastAttemptAt,
+            progress.completedAt || null,
+          ]
+        );
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.saveLessonProgress(progress);
+  }
+
+  public async getMistakeStats(profileId: string): Promise<CharacterMistakeStat[]> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select('SELECT * FROM mistake_stats WHERE profileId = $1', [profileId]);
+        return rows.map((r) => ({
+          profileId: r.profileId,
+          char: r.char,
+          keyCode: r.keyCode,
+          errorCount: r.errorCount,
+          totalAttempts: r.totalAttempts,
+          lastErrorAt: r.lastErrorAt,
+        }));
+      } catch {
+        return this.fallbackAdapter.getMistakeStats(profileId);
+      }
+    }
+    return this.fallbackAdapter.getMistakeStats(profileId);
+  }
+
+  public async saveMistakeStats(stats: CharacterMistakeStat[]): Promise<void> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        for (const s of stats) {
+          const id = `${s.profileId}_${s.char}`;
+          await this.sqliteDb.execute(
+            `INSERT OR REPLACE INTO mistake_stats (id, profileId, char, keyCode, errorCount, totalAttempts, lastErrorAt)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [id, s.profileId, s.char, s.keyCode, s.errorCount, s.totalAttempts, s.lastErrorAt]
+          );
+        }
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.saveMistakeStats(stats);
+  }
+
+  public async getTeacherSettings(): Promise<LmsTeacherSettings> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        const rows: any[] = await this.sqliteDb.select('SELECT settingsJson FROM teacher_settings WHERE key = $1', ['global_lms_teacher_settings']);
+        if (rows.length > 0 && rows[0].settingsJson) {
+          return JSON.parse(rows[0].settingsJson);
+        }
+      } catch {
+        return this.fallbackAdapter.getTeacherSettings();
+      }
+    }
+    return this.fallbackAdapter.getTeacherSettings();
+  }
+
+  public async saveTeacherSettings(settings: LmsTeacherSettings): Promise<void> {
+    if (this.isTauriAvailable && this.sqliteDb) {
+      try {
+        await this.sqliteDb.execute(
+          'INSERT OR REPLACE INTO teacher_settings (key, settingsJson) VALUES ($1, $2)',
+          ['global_lms_teacher_settings', JSON.stringify(settings)]
+        );
+        return;
+      } catch {
+        // Fall back
+      }
+    }
+    return this.fallbackAdapter.saveTeacherSettings(settings);
   }
 
   public async exportAllData(): Promise<string> {
