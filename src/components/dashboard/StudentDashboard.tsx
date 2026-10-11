@@ -30,6 +30,7 @@ import { VirtualKeyboard } from '@/components/keyboard/VirtualKeyboard';
 import { CharacterLearning } from '@/components/character-learning/CharacterLearning';
 import { WordBuilder } from '@/components/word-builder/WordBuilder';
 import { PracticeEngine } from '@/components/practice/PracticeEngine';
+import { RemingtonPractice } from '@/components/remington/RemingtonPractice';
 import { LmsDashboard } from '@/components/lms/LmsDashboard';
 import { ExamContainer } from '@/components/exam/ExamContainer';
 import { InstitutePortal } from '@/components/institute/InstitutePortal';
@@ -54,6 +55,7 @@ export type ActiveModuleView =
   | 'dashboard'
   | 'lms'
   | 'exam'
+  | 'remington'
   | 'institute'
   | 'analytics'
   | 'heatmap'
@@ -168,6 +170,18 @@ export const StudentDashboard: React.FC = () => {
           >
             <FileCheck className="w-3.5 h-3.5" />
             <span>Examination (परीक्षा)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('remington')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
+              activeView === 'remington'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <KeyboardIcon className="w-3.5 h-3.5 text-indigo-300" />
+            <span>Remington GAIL (टाइपराइटर)</span>
           </button>
 
           <button
@@ -478,6 +492,19 @@ export const StudentDashboard: React.FC = () => {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
             </button>
             <PracticeEngine />
+          </div>
+        )}
+
+        {/* Phase 7: Remington GAIL Practice */}
+        {activeView === 'remington' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+            </button>
+            <RemingtonPractice />
           </div>
         )}
 

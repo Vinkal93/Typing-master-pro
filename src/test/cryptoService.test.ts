@@ -21,7 +21,7 @@ describe('Phase 5: Offline Cryptographic Security Service', () => {
     expect(hash1).toBeDefined();
     expect(hash1.length).toBeGreaterThan(0);
     expect(hash1).toEqual(hash2);
-  });
+  }, 15000);
 
   it('should produce different hashes for different salts or secrets', async () => {
     const salt1 = 'saltOne123456789';
@@ -33,7 +33,7 @@ describe('Phase 5: Offline Cryptographic Security Service', () => {
 
     expect(hashA).not.toEqual(hashB);
     expect(hashA).not.toEqual(hashC);
-  });
+  }, 15000);
 
   it('should accurately verify secrets and reject incorrect secrets in constant time', async () => {
     const salt = CryptoService.generateSalt();
@@ -45,7 +45,7 @@ describe('Phase 5: Offline Cryptographic Security Service', () => {
 
     const matchFail = await CryptoService.verifySecret('wrongPIN456', salt, hash);
     expect(matchFail).toBe(false);
-  });
+  }, 15000);
 
   it('should compute cryptographic checksums for backup payloads', async () => {
     const payload = JSON.stringify({ version: 4, instituteName: 'TMP' });

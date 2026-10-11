@@ -27,7 +27,7 @@ import { KeyboardLayout } from '@/types';
 import { CryptoService } from '../security/cryptoService';
 
 const DB_NAME = 'typing_master_pro_db';
-const DB_VERSION = 5; // Upgraded for Phase 6 Advanced Analytics, Achievements & Certificates
+const DB_VERSION = 6; // Upgraded for Phase 7 Remington GAIL, Kiosk Lockdown & LAN Sync
 
 export class IndexedDBStorageAdapter implements StorageAdapter {
   private db: IDBDatabase | null = null;
@@ -147,6 +147,15 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
           const recStore = db.createObjectStore('practice_recommendations', { keyPath: 'id' });
           recStore.createIndex('profileId', 'profileId', { unique: false });
           recStore.createIndex('createdAt', 'createdAt', { unique: false });
+        }
+
+        // Phase 7 Kiosk & LAN Terminal Stores
+        if (!db.objectStoreNames.contains('kiosk_violations')) {
+          const violStore = db.createObjectStore('kiosk_violations', { keyPath: 'id' });
+          violStore.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('terminal_nodes')) {
+          db.createObjectStore('terminal_nodes', { keyPath: 'id' });
         }
       };
 

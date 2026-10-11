@@ -5,6 +5,44 @@ All notable changes to **Typing Master Pro** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0] - Phase 7: Hindi Remington GAIL Keyboard Engine, CPCT Typewriter Training, Strict Examination Kiosk Lockdown & Live Multi-PC Socket Sync Engine - 2026-10-11
+
+### Added
+- **Module 1: Authoritative Hindi Remington GAIL Mapping Engine (`remingtonMapping.ts`)**:
+  - Full BIS Krutidev/Remington GAIL physical keyboard mapping using `event.code` (independent of Windows keyboard settings).
+  - Unshifted and shifted layers mapping consonants, half-forms, matras, halant, and punctuation.
+  - Comprehensive Official Alt Codes Table with 17 verified typewriter sequences (e.g. `0161` -> `ऋ`, `0179` -> `द्ग`, `0216` -> `क्त`, `0217` -> `द्घ`, `0225` -> `ल्ल`, etc.).
+  - Real-time Typewriter Sequence Normalization (`convertTypewriterOrderToUnicode`): seamlessly swaps typewriter input sequence where `ि` (Chhoti Ee matra) is struck *before* the consonant into valid Unicode Devanagari representation (`ि + क` -> `क + ि` = `कि`).
+- **Module 2: Interactive Remington GAIL Virtual Keyboard (`RemingtonVirtualKeyboard.tsx`)**:
+  - Dual-layer keycaps showing normal (bottom) and shifted (top) Devanagari characters alongside English physical keys.
+  - Color-coded finger zones for touch-typing training (Pinky, Ring, Middle, Index, Thumb).
+  - Active keypress animations with responsive glow feedback.
+  - Interactive Alt Codes Reference Drawer with 1-click preview and explanation of official government exam keystrokes.
+- **Module 3: Remington CPCT & High Court Practice Engine (`RemingtonPractice.tsx`)**:
+  - Structured lessons for Home Row, Shift Key Combos, Half Letters, and Official CPCT/High Court Legal Passages.
+  - Live character-by-character colorized feedback, WPM and Accuracy metrics.
+  - Audio feedback simulating authentic mechanical typewriter key clicks and mistake alerts.
+  - 1-click Alt Codes modal drawer for quick reference during practice drills.
+- **Module 4: Strict Examination Kiosk Lockdown System (`kioskLockdownService.ts`, `KioskExamScreen.tsx`)**:
+  - Automatic fullscreen enforcement with re-entry traps upon unauthorized exit attempts.
+  - Low-level keyboard event interception blocking prohibited shortcut combinations (Windows Key, Alt+Tab, Alt+F4, Ctrl+W, Ctrl+T, Ctrl+N, Ctrl+P, Ctrl+S, DevTools F12/Ctrl+Shift+I).
+  - Right-click context menu and clipboard copy/cut/paste blocking.
+  - Window blur and tab switch violation detection with live countdown counter (max 3 violations).
+  - Security Breach Modal locking the student workstation upon 3 violations with required Instructor PIN override (`123456`) or emergency submission.
+  - Integrated into examination flow across all tests and presets.
+- **Module 5: Live Multi-PC Socket / LAN Broadcast Sync Engine (`lanSyncService.ts`, `LiveTerminalMonitor.tsx`)**:
+  - Offline-first peer and master-node synchronization using `BroadcastChannel` and local socket protocols.
+  - Automated heartbeats broadcasting terminal state, IP address, student credentials, active exam title, live WPM, accuracy, and violation count every 3 seconds.
+  - Real-time Master Monitor tab inside Institute Portal (`LiveTerminalMonitor.tsx`) showing live grid of all connected lab workstations.
+  - Remote Instructor Controls: Remote Lock, Remote Unlock, and Emergency Lab-Wide Lock.
+  - Seamless offline buffering and auto-reconnect handling.
+- **Storage & Schema Upgrade (IndexedDB v6)**:
+  - Upgraded schema to `DB_VERSION = 6` with `kiosk_violations` and `terminal_nodes` object stores.
+  - 100% data preservation of existing Phase 1–6 student profiles, LMS progress, exam records, batches, attendance, certificates, and achievements.
+- **Automated Test Coverage**:
+  - 15 new automated tests across `src/test/remingtonMapping.test.ts`, `src/test/kioskLockdown.test.ts`, and `src/test/lanSync.test.ts`.
+  - Total test suite expanded to 29 test files and 123 tests, passing 100%.
+
 ## [6.0.0] - Phase 6: Advanced Analytics, Achievements & Certificates - 2026-10-10
 
 ### Added

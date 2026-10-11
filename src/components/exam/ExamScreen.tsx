@@ -21,8 +21,11 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { VirtualKeyboard } from '@/components/keyboard/VirtualKeyboard';
+import { RemingtonVirtualKeyboard } from '@/components/keyboard/RemingtonVirtualKeyboard';
 import { mapPhysicalKeyToHindi, getKeystrokeForChar } from '@/services/engine/inscriptMapping';
+import { mapPhysicalKeyToRemington, convertTypewriterOrderToUnicode } from '@/services/engine/remingtonMapping';
 import { audioService } from '@/services/engine/audioService';
+import { lanSyncService } from '@/services/network/lanSyncService';
 import { MonotonicExamTimer } from '@/services/exam/monotonicTimer';
 import { ScoringEngine } from '@/services/exam/scoringEngine';
 import { storageService } from '@/services/storage/storageService';
@@ -272,6 +275,10 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
         const hindi = mapPhysicalKeyToHindi(e.code, e.shiftKey);
         if (!hindi) return;
         charToAdd = hindi;
+      } else if (config.layout === 'Hindi Remington GAIL') {
+        const remingtonChar = mapPhysicalKeyToRemington(e.code, e.shiftKey);
+        if (!remingtonChar) return;
+        charToAdd = remingtonChar;
       } else {
         // English QWERTY
         if (e.key.length === 1) {
@@ -294,7 +301,12 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       if (activeProfile) {
         const expectedChar = passage.text[typedText.length] || '';
         const isCorrect = charToAdd === expectedChar;
-        const layoutKey = config.layout === 'Hindi InScript' ? 'hindi_inscript' : 'english_qwerty';
+        const layoutKey =
+          config.layout === 'Hindi InScript'
+            ? 'hindi_inscript'
+            : config.layout === 'Hindi Remington GAIL'
+            ? 'remington_gail'
+            : 'english_qwerty';
         HeatmapService.recordKeyAttempt(
           activeProfile.id,
           layoutKey,
@@ -305,7 +317,29 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
         ).catch(() => {});
       }
 
-      setTypedText((prev) => prev + charToAdd);
+      if (config.layout === 'Hindi Remington GAIL') {
+        setTypedText((prev) => convertTypewriterOrderToUnicode(prev + charToAdd));
+      } else {
+        setTypedText((prev) => prev + charToAdd);
+      }
+
+      // Broadcast progress to LAN Monitor
+      let correctCharsCount = 0;
+      const totalLen = typedText.length + 1;
+      for (let i = 0; i < typedText.length; i++) {
+        if (typedText[i] === passage.text[i]) correctCharsCount++;
+      }
+      if (charToAdd === passage.text[typedText.length]) correctCharsCount++;
+      const liveAccuracy = totalLen > 0 ? Math.round((correctCharsCount / totalLen) * 100) : 100;
+
+      const currentGrossWpm = Math.round(((typedText.length + 1) / 5) / (Math.max(1, elapsedSeconds) / 60));
+      lanSyncService.updateExamProgress(
+        passage.title,
+        currentGrossWpm,
+        liveAccuracy,
+        elapsedSeconds,
+        'in_exam'
+      );
 
       // Check if candidate typed entire passage
       if (typedText.length + charToAdd.length >= passage.text.length) {
@@ -532,6 +566,15 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
             requiresShift={expectedKeystroke?.requiresShift}
             errorKeyCode={errorKeyCode}
             showHandsGuide={true}
+          />
+        </div>
+      )}
+
+      {!isStrictMode && config.showVirtualKeyboard && config.layout === 'Hindi Remington GAIL' && (
+        <div className="pt-2">
+          <RemingtonVirtualKeyboard
+            activeKeyCodes={activeKeyCodes}
+            showAltCodes={false}
           />
         </div>
       )}

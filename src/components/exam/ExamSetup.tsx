@@ -274,22 +274,67 @@ export const ExamSetup: React.FC<ExamSetupProps> = ({ onStartExam }) => {
               कीबोर्ड लेआउट (Keyboard Layout)
             </label>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-2.5 rounded-lg border border-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 text-xs">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  <span className="font-semibold text-emerald-900 dark:text-emerald-200">
-                    {language === 'Hindi' ? 'Hindi InScript (IS 16350 मानक)' : 'English QWERTY'}
-                  </span>
-                </div>
-                <Badge variant="green" size="sm">सक्रिय एवं सत्यापित</Badge>
-              </div>
+              {language === 'Hindi' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setLayout('Hindi InScript')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-xs text-left transition-all ${
+                      layout === 'Hindi InScript'
+                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-semibold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {layout === 'Hindi InScript' ? (
+                        <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-400 flex-shrink-0" />
+                      )}
+                      <div>
+                        <span>Hindi InScript (IS 16350 मानक)</span>
+                        <p className="text-[10px] text-slate-500 font-normal">केंद्र व राज्य सरकारी भर्ती एवं SSC मानक</p>
+                      </div>
+                    </div>
+                    <Badge variant={layout === 'Hindi InScript' ? 'green' : 'gray'} size="sm">
+                      सत्यापित
+                    </Badge>
+                  </button>
 
-              {language === 'Hindi' && (
-                <div className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900 text-xs opacity-60">
-                  <span className="text-slate-500">
-                    Hindi Remington GAIL
-                  </span>
-                  <Badge variant="gray" size="sm">इंजन निर्माणाधीन (Coming Soon)</Badge>
+                  <button
+                    type="button"
+                    onClick={() => setLayout('Hindi Remington GAIL')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-xs text-left transition-all ${
+                      layout === 'Hindi Remington GAIL'
+                        ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-100 font-semibold'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {layout === 'Hindi Remington GAIL' ? (
+                        <Check className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-400 flex-shrink-0" />
+                      )}
+                      <div>
+                        <span>Hindi Remington GAIL (रेमिंगटन गेल)</span>
+                        <p className="text-[10px] text-slate-500 font-normal">CPCT, हाईकोर्ट व पारंपरिक टाइपराइटर लेआउट</p>
+                      </div>
+                    </div>
+                    <Badge variant={layout === 'Hindi Remington GAIL' ? 'blue' : 'gray'} size="sm">
+                      सक्रिय एवं Alt कोड समर्थित
+                    </Badge>
+                  </button>
+                </>
+              ) : (
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span className="font-semibold text-emerald-900 dark:text-emerald-200">
+                      English QWERTY
+                    </span>
+                  </div>
+                  <Badge variant="green" size="sm">सक्रिय एवं सत्यापित</Badge>
                 </div>
               )}
             </div>

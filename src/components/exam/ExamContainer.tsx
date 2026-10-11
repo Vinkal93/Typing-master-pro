@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ExamConfig, ExamPassage, ExamAttemptRecord } from '@/types/exam';
 import { ExamSetup } from './ExamSetup';
-import { ExamScreen } from './ExamScreen';
+import { KioskExamScreen } from './KioskExamScreen';
 import { ExamResultView } from './ExamResultView';
 
 export type ExamViewStage = 'setup' | 'running' | 'result';
@@ -43,7 +43,7 @@ export const ExamContainer: React.FC = () => {
 
   if (stage === 'running' && activeConfig && activePassage) {
     return (
-      <ExamScreen
+      <KioskExamScreen
         config={activeConfig}
         passage={activePassage}
         onFinished={handleExamFinished}

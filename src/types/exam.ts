@@ -4,7 +4,7 @@
 
 export type ExamLanguage = 'Hindi' | 'English';
 
-export type ExamLayout = 'Hindi InScript' | 'English QWERTY';
+export type ExamLayout = 'Hindi InScript' | 'Hindi Remington GAIL' | 'English QWERTY';
 
 export type ExamMode = 'practice' | 'strict_exam';
 

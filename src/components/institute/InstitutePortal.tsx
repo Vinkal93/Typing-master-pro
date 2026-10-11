@@ -18,6 +18,7 @@ import {
   KeyRound,
   AlertCircle,
   Award,
+  Monitor,
 } from 'lucide-react';
 import { AuthSession } from '@/types/institute';
 import { RbacService } from '@/services/security/rbacService';
@@ -32,6 +33,7 @@ import { BackupRestoreView } from './BackupRestoreView';
 import { LanSpecView } from './LanSpecView';
 import { TeacherAnalyticsView } from './TeacherAnalyticsView';
 import { InstituteCertificateManagerView } from './InstituteCertificateManagerView';
+import { LiveTerminalMonitor } from './LiveTerminalMonitor';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
@@ -43,6 +45,7 @@ interface InstitutePortalProps {
 export type InstitutePortalTab =
   | 'dashboard'
   | 'teacher_dashboard'
+  | 'live_terminals'
   | 'teacher_analytics'
   | 'certificates'
   | 'students'
@@ -231,6 +234,18 @@ export const InstitutePortal: React.FC<InstitutePortalProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('live_terminals')}
+          className={`px-3 py-2 font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'live_terminals'
+              ? 'bg-purple-600 text-white'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Monitor className="w-3.5 h-3.5 text-emerald-400" />
+          Live Lab Monitor (लाइव मॉनिटर)
+        </button>
+
+        <button
           onClick={() => setActiveTab('students')}
           className={`px-3 py-2 font-semibold rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap ${
             activeTab === 'students'
@@ -348,6 +363,9 @@ export const InstitutePortal: React.FC<InstitutePortalProps> = ({
         )}
         {activeTab === 'teacher_dashboard' && (
           <TeacherDashboardView currentUser={session.user} onNavigateTab={navigateTab} />
+        )}
+        {activeTab === 'live_terminals' && (
+          <LiveTerminalMonitor />
         )}
         {activeTab === 'students' && (
           <StudentManagementView currentUser={session.user} />
