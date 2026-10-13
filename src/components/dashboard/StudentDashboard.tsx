@@ -1,25 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  LayoutDashboard,
-  Keyboard as KeyboardIcon,
-  BookOpen,
-  Sparkles,
-  Layers,
-  ArrowLeft,
-  GraduationCap,
-  FileCheck,
-  Building2,
-} from 'lucide-react';
 import { useProfile } from '@/context/ProfileContext';
-import { DashboardHeader } from './DashboardHeader';
-import { WelcomeSection } from './WelcomeSection';
-import { ContinueLearningCard } from './ContinueLearningCard';
-import { StatsOverview } from './StatsOverview';
-import { DailyGoalCard } from './DailyGoalCard';
-import { CourseRoadmapPreview } from './CourseRoadmapPreview';
-import { RecentActivity } from './RecentActivity';
+import { AppShell } from '@/components/layout/AppShell';
+import { DashboardOverview } from './DashboardOverview';
 import { SettingsModal } from './SettingsModal';
 import { TeacherModeModal } from './TeacherModeModal';
 import { KeyboardReferenceModal } from './KeyboardReferenceModal';
@@ -36,20 +20,17 @@ import { ExamContainer } from '@/components/exam/ExamContainer';
 import { InstitutePortal } from '@/components/institute/InstitutePortal';
 import { AuthModal } from '@/components/institute/AuthModal';
 import { AuthSession } from '@/types/institute';
-import { LessonCatalogService } from '@/services/lessons/lessonCatalog';
+import { RbacService } from '@/services/security/rbacService';
 import { StatisticsService, ProfileStatistics } from '@/services/statistics/statisticsService';
 import { LessonMetadata } from '@/types';
+import { NavigationItemId } from '@/types/navigation';
 import { StudentAnalyticsView } from '@/components/analytics/StudentAnalyticsView';
 import { KeyboardHeatmapView } from '@/components/analytics/KeyboardHeatmapView';
 import { SmartRecommendationsView } from '@/components/analytics/SmartRecommendationsView';
 import { AchievementsView } from '@/components/achievements/AchievementsView';
 import { CertificateGalleryView } from '@/components/certificates/CertificateGalleryView';
 import { LeaderboardView } from '@/components/leaderboard/LeaderboardView';
-import {
-  TrendingUp,
-  Award,
-  Trophy,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export type ActiveModuleView =
   | 'dashboard'
@@ -94,9 +75,17 @@ export const StudentDashboard: React.FC = () => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<LessonMetadata | null>(null);
 
-  // Phase 5: Institute Authentication Session State
+  // Institute Staff Authentication Session State
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Restore staff session if active
+  useEffect(() => {
+    const existing = RbacService.getCurrentSession();
+    if (existing && !existing.isLocked) {
+      setAuthSession(existing);
+    }
+  }, []);
 
   const fetchStats = useCallback(async () => {
     if (!activeProfile) return;
@@ -112,287 +101,133 @@ export const StudentDashboard: React.FC = () => {
     fetchStats();
   }, [fetchStats]);
 
+  const handleNavigate = (viewId: NavigationItemId) => {
+    if (viewId === 'institute') {
+      if (authSession) {
+        setActiveView('institute');
+      } else {
+        setIsAuthModalOpen(true);
+      }
+      return;
+    }
+
+    if (
+      [
+        'dashboard',
+        'lms',
+        'exam',
+        'remington',
+        'analytics',
+        'heatmap',
+        'recommendations',
+        'achievements',
+        'certificates',
+        'leaderboard',
+        'practice',
+        'character_learning',
+        'word_builder',
+        'virtual_keyboard',
+      ].includes(viewId)
+    ) {
+      setActiveView(viewId as ActiveModuleView);
+    }
+  };
+
+  const handleSignOutTeacher = () => {
+    RbacService.logout();
+    setAuthSession(null);
+    if (activeView === 'institute') {
+      setActiveView('dashboard');
+    }
+  };
+
   if (!activeProfile) {
     return null;
   }
 
-  const lessons = LessonCatalogService.getLessonsByLayout(activeProfile.preferences.keyboardLayout);
-  const recommendedLesson = lessons[0] || LessonCatalogService.getLessonsByLayout('english_qwerty')[0];
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
-      {/* Top Navigation & Profile Switcher */}
-      <DashboardHeader
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenTeacherMode={() => {
-          if (authSession) setActiveView('institute');
-          else setIsAuthModalOpen(true);
-        }}
-        onOpenKeyboardRef={() => setActiveView('virtual_keyboard')}
-        onOpenProfileManager={() => setIsProfileManagerOpen(true)}
-        onAddNewStudent={() => setIsAddStudentOpen(true)}
-      />
-
-      {/* Module Navigation Tabs */}
-      <nav className="w-full border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 sm:gap-2 overflow-x-auto py-2 scrollbar-none">
-          <button
-            onClick={() => setActiveView('dashboard')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'dashboard'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Dashboard</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('lms')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'lms'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>LMS Course (160 पाठ)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('exam')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'exam'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <FileCheck className="w-3.5 h-3.5" />
-            <span>Examination (परीक्षा)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('remington')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'remington'
-                ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <KeyboardIcon className="w-3.5 h-3.5 text-indigo-300" />
-            <span>Remington GAIL (टाइपराइटर)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              if (authSession) setActiveView('institute');
-              else setIsAuthModalOpen(true);
-            }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'institute'
-                ? 'bg-purple-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Institute (प्रबंधन)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('practice')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'practice'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <KeyboardIcon className="w-3.5 h-3.5" />
-            <span>Typing Practice</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('character_learning')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'character_learning'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Character Learning</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('word_builder')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'word_builder'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Word Builder (शब्द रचना)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('analytics')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'analytics'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Analytics (विश्लेषण)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('heatmap')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'heatmap'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <KeyboardIcon className="w-3.5 h-3.5" />
-            <span>Heatmap (हीटमैप)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('recommendations')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'recommendations'
-                ? 'bg-amber-500 text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Smart Drills (सिफारिशें)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('achievements')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'achievements'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Achievements (पदक)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('certificates')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'certificates'
-                ? 'bg-purple-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>Certificates (प्रमाणपत्र)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('leaderboard')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'leaderboard'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Leaderboard (लीडरबोर्ड)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveView('virtual_keyboard')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all ${
-              activeView === 'virtual_keyboard'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Virtual Keyboard</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Main Workspace Body */}
-      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1">
+    <AppShell
+      activeView={activeView}
+      onNavigate={handleNavigate}
+      authSession={authSession}
+      onOpenSettings={() => setIsSettingsOpen(true)}
+      onOpenKeyboardRef={() => setIsKeyboardRefOpen(true)}
+      onOpenProfileManager={() => setIsProfileManagerOpen(true)}
+      onAddNewStudent={() => setIsAddStudentOpen(true)}
+      onOpenTeacherMode={() => {
+        if (authSession) setActiveView('institute');
+        else setIsAuthModalOpen(true);
+      }}
+      onSignOutTeacher={handleSignOutTeacher}
+    >
+      {/* View Router */}
+      <div className="w-full">
+        {/* VIEW 1: Dashboard Overview */}
         {activeView === 'dashboard' && (
-          <div className="space-y-6">
-            {/* Welcome Section */}
-            <WelcomeSection profile={activeProfile} />
-
-            {/* Continue Learning CTA Card */}
-            <ContinueLearningCard
-              currentLesson={recommendedLesson}
-              onStartLesson={() => setActiveView('practice')}
-            />
-
-            {/* Metrics & Daily Target Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                {/* Speed & Accuracy Analytics (Explicit No-Data States) */}
-                <StatsOverview stats={stats} />
-
-                {/* Course Roadmap Preview */}
-                <CourseRoadmapPreview
-                  layout={activeProfile.preferences.keyboardLayout}
-                  onSelectLesson={(lesson) => setSelectedLesson(lesson)}
-                />
-              </div>
-
-              {/* Right Column: Daily Goal & Recent Activity */}
-              <div className="space-y-6">
-                <DailyGoalCard
-                  todayMinutes={stats.todayMinutes}
-                  goalMinutes={activeProfile.preferences.dailyPracticeGoal}
-                  streakDays={stats.currentStreakDays}
-                />
-
-                <RecentActivity
-                  recentResults={stats.recentResults}
-                  onStartPractice={() => setActiveView('practice')}
-                />
-              </div>
-            </div>
-          </div>
+          <DashboardOverview
+            stats={stats}
+            onStartPractice={() => setActiveView('practice')}
+            onContinueCourse={() => setActiveView('lms')}
+            onTakeExam={() => setActiveView('exam')}
+            onOpenKeyboardMap={() => setActiveView('virtual_keyboard')}
+          />
         )}
 
-        {/* Phase 3: Smart LMS Master Course */}
+        {/* VIEW 2: My Learning (160-Lesson Progressive LMS) */}
         {activeView === 'lms' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <LmsDashboard />
           </div>
         )}
 
-        {/* Phase 4: Professional Typing Examination System */}
-        {activeView === 'exam' && (
-          <div className="space-y-4">
+        {/* VIEW 3: Typing Practice Arena */}
+        {activeView === 'practice' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-rose-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </button>
+            <PracticeEngine />
+          </div>
+        )}
+
+        {/* VIEW 4: Official Typing Examination System */}
+        {activeView === 'exam' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <ExamContainer />
           </div>
         )}
 
-        {/* Phase 5: Teacher Admin & Institute Management */}
+        {/* VIEW 5: Remington GAIL Practice */}
+        {activeView === 'remington' && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            </button>
+            <RemingtonPractice />
+          </div>
+        )}
+
+        {/* VIEW 6: Institute Management Portal */}
         {activeView === 'institute' && authSession && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <InstitutePortal
               initialSession={authSession}
               onExitToStudentDashboard={() => setActiveView('dashboard')}
@@ -400,155 +235,129 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Phase 6: Performance Analytics */}
+        {/* VIEW 7: Speed & Accuracy Analytics */}
         {activeView === 'analytics' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
               className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <StudentAnalyticsView />
           </div>
         )}
 
-        {/* Phase 6: Keyboard Heatmap */}
+        {/* VIEW 8: Keyboard Accuracy Heatmap */}
         {activeView === 'heatmap' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <KeyboardHeatmapView />
           </div>
         )}
 
-        {/* Phase 6: Smart Recommendations */}
+        {/* VIEW 9: Smart Recommendations */}
         {activeView === 'recommendations' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <SmartRecommendationsView
-              onStartDrill={(text) => {
+              onStartDrill={() => {
                 setActiveView('practice');
               }}
             />
           </div>
         )}
 
-        {/* Phase 6: Achievements */}
+        {/* VIEW 10: Milestone Achievements */}
         {activeView === 'achievements' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <AchievementsView />
           </div>
         )}
 
-        {/* Phase 6: Certificates */}
+        {/* VIEW 11: Certificates Gallery */}
         {activeView === 'certificates' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-purple-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <CertificateGalleryView />
           </div>
         )}
 
-        {/* Phase 6: Leaderboard */}
+        {/* VIEW 12: Institute Leaderboard */}
         {activeView === 'leaderboard' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <LeaderboardView />
           </div>
         )}
 
-        {/* Module 5: Practice Engine */}
-        {activeView === 'practice' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
-            </button>
-            <PracticeEngine />
-          </div>
-        )}
-
-        {/* Phase 7: Remington GAIL Practice */}
-        {activeView === 'remington' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveView('dashboard')}
-              className="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
-            </button>
-            <RemingtonPractice />
-          </div>
-        )}
-
-        {/* Module 3: Character Learning */}
+        {/* VIEW 13: Character Learning Drills */}
         {activeView === 'character_learning' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
               className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <CharacterLearning />
           </div>
         )}
 
-        {/* Module 4: Word Builder */}
+        {/* VIEW 14: Hindi Word Builder */}
         {activeView === 'word_builder' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
               className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <WordBuilder />
           </div>
         )}
 
-        {/* Module 2: Virtual Keyboard Fullscreen View */}
+        {/* VIEW 15: Virtual Keyboard Full View */}
         {activeView === 'virtual_keyboard' && (
-          <div className="space-y-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
               onClick={() => setActiveView('dashboard')}
               className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Student Dashboard
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <VirtualKeyboard showHandsGuide={true} />
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Modals */}
+      {/* Persistent Modals */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -592,6 +401,6 @@ export const StudentDashboard: React.FC = () => {
         profile={activeProfile}
         onRefreshStats={fetchStats}
       />
-    </div>
+    </AppShell>
   );
 };
