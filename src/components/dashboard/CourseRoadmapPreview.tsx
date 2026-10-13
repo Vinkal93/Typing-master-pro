@@ -52,10 +52,10 @@ export const CourseRoadmapPreview: React.FC<CourseRoadmapPreviewProps> = ({
           </p>
         </div>
 
-        {/* Phase notice badge */}
-        <span className="text-[11px] px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900 font-medium inline-flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-          <span>Phase 1 Curriculum • Phase 2 Interactive Engine</span>
+        {/* Curriculum badge */}
+        <span className="text-[11px] px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900 font-medium inline-flex items-center gap-1.5">
+          <Info className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+          <span>160 Lessons • Hindi InScript, Remington GAIL & English QWERTY</span>
         </span>
       </div>
 

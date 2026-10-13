@@ -24,6 +24,7 @@ import { audioService } from '@/services/engine/audioService';
 import { RemingtonVirtualKeyboard } from '@/components/keyboard/RemingtonVirtualKeyboard';
 import { HeatmapService } from '@/services/analytics/heatmapService';
 import { AchievementService } from '@/services/achievements/achievementService';
+import { StatisticsService } from '@/services/statistics/statisticsService';
 
 const REMINGTON_LESSONS = [
   {
@@ -68,6 +69,8 @@ export const RemingtonPractice: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
+  const [backspaceCount, setBackspaceCount] = useState(0);
+  const [resultSaved, setResultSaved] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(true);
 
@@ -95,6 +98,8 @@ export const RemingtonPractice: React.FC = () => {
     setStartTime(null);
     setElapsedSeconds(0);
     setErrorCount(0);
+    setBackspaceCount(0);
+    setResultSaved(false);
     setActiveCode(undefined);
   };
 
@@ -107,6 +112,7 @@ export const RemingtonPractice: React.FC = () => {
         if (typedText.length > 0) {
           if (!isMuted) audioService.playKeyClick();
           setTypedText((prev) => prev.slice(0, -1));
+          setBackspaceCount((prev) => prev + 1);
         }
         return;
       }
@@ -115,7 +121,9 @@ export const RemingtonPractice: React.FC = () => {
         return;
       }
 
-      const mapped = mapPhysicalKeyToRemington(e.code, e.shiftKey);
+      const mapped = (e.code === 'Enter' || e.code === 'NumpadEnter')
+        ? '\n'
+        : mapPhysicalKeyToRemington(e.code, e.shiftKey);
       if (!mapped) return;
 
       e.preventDefault();
@@ -173,6 +181,7 @@ export const RemingtonPractice: React.FC = () => {
   }, [handleKeyDown]);
 
   // Metric calculations
+  const totalKeystrokes = typedText.length + errorCount;
   const wordsTyped = typedText.length / 5;
   const minutes = Math.max(0.01, elapsedSeconds / 60);
   const grossWpm = Math.round(wordsTyped / minutes);
@@ -181,6 +190,51 @@ export const RemingtonPractice: React.FC = () => {
     typedText.length > 0
       ? Math.max(0, Math.round(((typedText.length - errorCount) / typedText.length) * 100))
       : 100;
+
+  // Save session result
+  const handleSaveResult = useCallback(async () => {
+    if (!activeProfile || resultSaved) return;
+    try {
+      await StatisticsService.recordPracticeResult({
+        id: `result_${Date.now()}`,
+        profileId: activeProfile.id,
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
+        layout: 'remington_gail',
+        language: 'hindi',
+        completedAt: Date.now(),
+        durationSeconds: Math.max(1, elapsedSeconds),
+        grossWpm,
+        netWpm,
+        accuracy,
+        totalKeyStrokes: totalKeystrokes,
+        correctKeyStrokes: typedText.length,
+        errorCount,
+        backspaceCount,
+      });
+      setResultSaved(true);
+    } catch (err) {
+      console.error('Error saving remington practice result:', err);
+    }
+  }, [
+    activeProfile,
+    resultSaved,
+    lesson,
+    elapsedSeconds,
+    grossWpm,
+    netWpm,
+    accuracy,
+    totalKeystrokes,
+    typedText.length,
+    errorCount,
+    backspaceCount,
+  ]);
+
+  useEffect(() => {
+    if (isFinished && !resultSaved && activeProfile) {
+      handleSaveResult();
+    }
+  }, [isFinished, resultSaved, activeProfile, handleSaveResult]);
 
   return (
     <div ref={containerRef} className="space-y-6">
@@ -301,7 +355,7 @@ export const RemingtonPractice: React.FC = () => {
 
             return (
               <span key={index} className={colorClass}>
-                {char}
+                {char === '\n' ? '↵\n' : char}
               </span>
             );
           })}
@@ -323,6 +377,7 @@ export const RemingtonPractice: React.FC = () => {
                 </h4>
                 <p className="text-xs text-emerald-700 dark:text-emerald-400">
                   शुद्ध गति: {netWpm} WPM • सटीकता: {accuracy}% • समय: {elapsedSeconds} सेकंड
+                  {resultSaved && ' • परिणाम प्रोफाइल में सहेजा गया'}
                 </p>
               </div>
             </div>

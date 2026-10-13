@@ -224,14 +224,16 @@ export class ProgressionService {
 
     // Average metrics over completed lessons
     const completedProgress = progressList.filter((p) => p.isCompleted && p.bestAccuracy > 0);
-    const averageAccuracy = completedProgress.length > 0
+    const rawAccuracy = completedProgress.length > 0
       ? completedProgress.reduce((sum, p) => sum + p.bestAccuracy, 0) / completedProgress.length
       : 0;
+    const averageAccuracy = Math.round(rawAccuracy * 10) / 10;
 
     const completedWithWpm = completedProgress.filter((p) => p.bestNetWpm > 0);
-    const averageWpm = completedWithWpm.length > 0
+    const rawWpm = completedWithWpm.length > 0
       ? completedWithWpm.reduce((sum, p) => sum + p.bestNetWpm, 0) / completedWithWpm.length
       : 0;
+    const averageWpm = Math.round(rawWpm * 10) / 10;
 
     // Top weak characters
     const weakCharacters = [...mistakes]
@@ -249,8 +251,8 @@ export class ProgressionService {
       currentLessonId,
       totalCompleted,
       totalRemaining,
-      averageAccuracy: Math.round(averageAccuracy * 10) / 10,
-      averageWpm: Math.round(averageWpm),
+      averageAccuracy,
+      averageWpm,
       streakDays: totalCompleted > 0 ? 1 : 0,
       weakCharacters,
     };

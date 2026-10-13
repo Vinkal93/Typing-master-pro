@@ -5,11 +5,10 @@ import { useProfile } from '@/context/ProfileContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { DashboardOverview } from './DashboardOverview';
 import { SettingsModal } from './SettingsModal';
-import { TeacherModeModal } from './TeacherModeModal';
+
 import { KeyboardReferenceModal } from './KeyboardReferenceModal';
 import { ProfileManagerModal } from './ProfileManagerModal';
 import { AddStudentModal } from './AddStudentModal';
-import { LessonPreviewModal } from './LessonPreviewModal';
 import { VirtualKeyboard } from '@/components/keyboard/VirtualKeyboard';
 import { CharacterLearning } from '@/components/character-learning/CharacterLearning';
 import { WordBuilder } from '@/components/word-builder/WordBuilder';
@@ -69,11 +68,11 @@ export const StudentDashboard: React.FC = () => {
 
   // Modal visibility states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isTeacherModeOpen, setIsTeacherModeOpen] = useState(false);
   const [isKeyboardRefOpen, setIsKeyboardRefOpen] = useState(false);
   const [isProfileManagerOpen, setIsProfileManagerOpen] = useState(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<LessonMetadata | null>(null);
+  // Active remedial practice drill (from Smart Recommendations)
+  const [activeDrill, setActiveDrill] = useState<{ text: string; title: string } | null>(null);
 
   // Institute Staff Authentication Session State
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
@@ -190,12 +189,18 @@ export const StudentDashboard: React.FC = () => {
         {activeView === 'practice' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
             <button
-              onClick={() => setActiveView('dashboard')}
+              onClick={() => {
+                setActiveDrill(null);
+                setActiveView('dashboard');
+              }}
               className="text-xs font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1.5 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
-            <PracticeEngine />
+            <PracticeEngine
+              customDrillText={activeDrill?.text}
+              customDrillTitle={activeDrill?.title}
+            />
           </div>
         )}
 
@@ -271,7 +276,8 @@ export const StudentDashboard: React.FC = () => {
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </button>
             <SmartRecommendationsView
-              onStartDrill={() => {
+              onStartDrill={(drillText, title) => {
+                setActiveDrill({ text: drillText, title });
                 setActiveView('practice');
               }}
             />
@@ -372,11 +378,6 @@ export const StudentDashboard: React.FC = () => {
         }}
       />
 
-      <TeacherModeModal
-        isOpen={isTeacherModeOpen}
-        onClose={() => setIsTeacherModeOpen(false)}
-      />
-
       <KeyboardReferenceModal
         isOpen={isKeyboardRefOpen}
         onClose={() => setIsKeyboardRefOpen(false)}
@@ -392,14 +393,6 @@ export const StudentDashboard: React.FC = () => {
       <AddStudentModal
         isOpen={isAddStudentOpen}
         onClose={() => setIsAddStudentOpen(false)}
-      />
-
-      <LessonPreviewModal
-        isOpen={selectedLesson !== null}
-        onClose={() => setSelectedLesson(null)}
-        lesson={selectedLesson}
-        profile={activeProfile}
-        onRefreshStats={fetchStats}
       />
     </AppShell>
   );

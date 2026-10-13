@@ -597,6 +597,18 @@ export const REMINGTON_KEYS: RemingtonKeyDef[] = [
     shiftCategory: 'control',
     row: 'space',
   },
+  {
+    code: 'Enter',
+    enNormal: 'Enter',
+    enShift: 'Enter',
+    hiNormal: '\n',
+    hiShift: '\n',
+    finger: 'right-pinky',
+    hand: 'right',
+    normalCategory: 'control',
+    shiftCategory: 'control',
+    row: 'space',
+  },
 ];
 
 export const REMINGTON_ALT_CODES: RemingtonAltCodeDef[] = [
@@ -629,6 +641,9 @@ REMINGTON_ALT_CODES.forEach((a) => ALT_CODE_MAP.set(a.code, a.character));
  * Maps physical keyboard event.code to Hindi Remington character based on shift modifier.
  */
 export function mapPhysicalKeyToRemington(code: string, isShift: boolean): string | null {
+  if (code === 'Enter' || code === 'NumpadEnter') {
+    return '\n';
+  }
   const def = KEY_MAP.get(code);
   if (!def) return null;
   return isShift ? def.hiShift : def.hiNormal;

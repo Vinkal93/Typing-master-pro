@@ -297,6 +297,16 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                   [{item.expected}]
                 </span>
               );
+            } else if (item.type === 'unattempted') {
+              return (
+                <span
+                  key={idx}
+                  className="px-1.5 py-0.5 rounded text-slate-400 dark:text-slate-600 opacity-60"
+                  title="अप्रयुक्त शब्द (Unattempted)"
+                >
+                  {item.expected}
+                </span>
+              );
             }
             return null;
           })}

@@ -24,7 +24,7 @@ export type ExamDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'ultra_a
 
 export type ExamDurationMinutes = 1 | 2 | 5 | 10 | 15 | 30 | 60;
 
-export type DiffType = 'correct' | 'substitution' | 'insertion' | 'omission';
+export type DiffType = 'correct' | 'substitution' | 'insertion' | 'omission' | 'unattempted';
 
 export interface SequenceDiffItem {
   type: DiffType;
@@ -47,6 +47,7 @@ export interface ScoringDetails {
   omissions: number;             // Skipped words/characters
   insertions: number;            // Extra words/characters typed
   substitutions: number;         // Wrongly replaced words/characters
+  unattempted?: number;          // Unattempted trailing words
   backspaceCount: number;
   targetDurationSeconds: number;
   actualDurationSeconds: number;

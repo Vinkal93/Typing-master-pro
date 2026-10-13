@@ -188,7 +188,7 @@ export const LmsDashboard: React.FC = () => {
           <span className="text-xs text-slate-500 block uppercase">औसत शुद्धता</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {summary.averageAccuracy > 0 ? `${summary.averageAccuracy}%` : '—'}
+              {summary.averageAccuracy > 0 ? `${Math.round(summary.averageAccuracy * 10) / 10}%` : '—'}
             </span>
           </div>
           <span className="text-xs text-slate-400 mt-3 block">
@@ -200,7 +200,7 @@ export const LmsDashboard: React.FC = () => {
           <span className="text-xs text-slate-500 block uppercase">औसत गति (WPM)</span>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {summary.averageWpm > 0 ? `${summary.averageWpm} WPM` : '—'}
+              {summary.averageWpm > 0 ? `${Math.round(summary.averageWpm * 10) / 10} WPM` : '—'}
             </span>
           </div>
           <span className="text-xs text-slate-400 mt-3 block">नेट शब्द प्रति मिनट</span>

@@ -647,6 +647,18 @@ export const INSCRIPT_KEYS: InScriptKeyDef[] = [
     shiftCategory: 'control',
     row: 'space',
   },
+  {
+    code: 'Enter',
+    enNormal: 'Enter',
+    enShift: 'Enter',
+    hiNormal: '\n',
+    hiShift: '\n',
+    finger: 'right-pinky',
+    hand: 'right',
+    normalCategory: 'control',
+    shiftCategory: 'control',
+    row: 'space',
+  },
 ];
 
 // Direct indexed lookup by physical event.code
@@ -713,6 +725,10 @@ export function mapPhysicalKeyToHindi(
   shiftKey: boolean,
   altKey: boolean = false
 ): string | null {
+  if (code === 'Enter' || code === 'NumpadEnter') {
+    return '\n';
+  }
+
   const keyDef = INSCRIPT_CODE_MAP.get(code);
   if (!keyDef) return null;
 

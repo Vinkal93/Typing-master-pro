@@ -88,7 +88,7 @@ export class ScoringEngine {
         j--;
       } else {
         diffSequence.push({
-          type: 'omission',
+          type: (i > 0 && j === 0) ? 'unattempted' : 'omission',
           expected: expectedWords[i - 1],
           index: i - 1,
         });
@@ -96,34 +96,83 @@ export class ScoringEngine {
       }
     }
 
-    return diffSequence.reverse();
-  }
+    diffSequence.reverse();
 
-  /**
-   * Character-level alignment comparison between two normalized texts.
-   */
-  public static computeCharacterCounts(expectedText: string, typedText: string): {
-    correctChars: number;
-    incorrectChars: number;
-  } {
-    let correct = 0;
-    let incorrect = 0;
-    const minLen = Math.min(expectedText.length, typedText.length);
-
-    for (let k = 0; k < minLen; k++) {
-      if (expectedText[k] === typedText[k]) {
-        correct++;
+    // Trailing unmatched expected words at the end of the passage are unattempted,
+    // not omission errors. Only omissions within the typed range count as errors.
+    for (let k = diffSequence.length - 1; k >= 0; k--) {
+      const item = diffSequence[k];
+      if (item.type === 'omission') {
+        item.type = 'unattempted';
       } else {
-        incorrect++;
+        break;
       }
     }
 
-    // Extra typed characters beyond expected
-    if (typedText.length > expectedText.length) {
-      incorrect += typedText.length - expectedText.length;
+    return diffSequence;
+  }
+
+  /**
+   * Character-level alignment comparison based on word-level diff sequence.
+   * Alignment-aware to prevent single char insertions/omissions from throwing off subsequent alignment.
+   */
+  public static computeCharacterCounts(
+    diffSequence: SequenceDiffItem[]
+  ): {
+    correctChars: number;
+    incorrectChars: number;
+  };
+  public static computeCharacterCounts(
+    expectedText: string,
+    typedText: string
+  ): {
+    correctChars: number;
+    incorrectChars: number;
+  };
+  public static computeCharacterCounts(
+    diffOrExpected: SequenceDiffItem[] | string,
+    typedText?: string
+  ): {
+    correctChars: number;
+    incorrectChars: number;
+  } {
+    if (typeof diffOrExpected === 'string') {
+      const expectedWords = this.tokenize(diffOrExpected);
+      const typedWords = this.tokenize(typedText || '');
+      const diff = this.alignSequences(expectedWords, typedWords);
+      return this.computeCharacterCounts(diff);
     }
 
-    return { correctChars: correct, incorrectChars: incorrect };
+    const diffSequence = diffOrExpected;
+    let correctChars = 0;
+    let incorrectChars = 0;
+
+    for (const item of diffSequence) {
+      if (item.type === 'correct' || (item.type as string) === 'match') {
+        const word = item.expected || item.typed || '';
+        correctChars += word.length;
+      } else if (item.type === 'substitution') {
+        const expected = item.expected || '';
+        const typed = item.typed || '';
+        const minLen = Math.min(expected.length, typed.length);
+        for (let k = 0; k < minLen; k++) {
+          if (expected[k] === typed[k]) {
+            correctChars++;
+          } else {
+            incorrectChars++;
+          }
+        }
+        // Account for character length differences in word substitutions
+        incorrectChars += Math.abs(expected.length - typed.length);
+      } else if (item.type === 'insertion') {
+        incorrectChars += (item.typed?.length || 0);
+      } else if (item.type === 'omission') {
+        incorrectChars += (item.expected?.length || 0);
+      }
+      // 'unattempted' items represent trailing unattempted words and are not errors
+    }
+
+    return { correctChars, incorrectChars };
   }
 
   /**
@@ -153,6 +202,7 @@ export class ScoringEngine {
     let substitutions = 0;
     let insertions = 0;
     let omissions = 0;
+    let unattempted = 0;
     let correctWordsCount = 0;
 
     diffSequence.forEach((item) => {
@@ -160,6 +210,7 @@ export class ScoringEngine {
       else if (item.type === 'substitution') substitutions++;
       else if (item.type === 'insertion') insertions++;
       else if (item.type === 'omission') omissions++;
+      else if (item.type === 'unattempted') unattempted++;
     });
 
     const totalErrors = substitutions + insertions + omissions;
@@ -175,11 +226,12 @@ export class ScoringEngine {
     const grossWpm = Math.round((grossWordsStandard / elapsedMinutes) * 10) / 10;
     const cpm = Math.round(totalCharsTyped / elapsedMinutes);
 
-    // Compute character accuracy
-    const { correctChars, incorrectChars } = this.computeCharacterCounts(expectedText, typedText);
-    const accuracy = totalCharsTyped > 0
-      ? Math.max(0, Math.min(100, Math.round(((correctChars / totalCharsTyped) * 100) * 10) / 10))
-      : 100;
+    // Compute character accuracy using alignment-aware character counts
+    const { correctChars, incorrectChars } = this.computeCharacterCounts(diffSequence);
+    const totalEvaluatedChars = correctChars + incorrectChars;
+    const accuracy = totalEvaluatedChars > 0
+      ? Math.max(0, Math.min(100, Math.round(((correctChars / totalEvaluatedChars) * 100) * 10) / 10))
+      : (totalCharsTyped > 0 ? 0 : 100);
 
     let netWpm = 0;
     let formulaExplanation = '';
@@ -253,6 +305,7 @@ export class ScoringEngine {
       omissions,
       insertions,
       substitutions,
+      unattempted,
       backspaceCount,
       targetDurationSeconds,
       actualDurationSeconds,

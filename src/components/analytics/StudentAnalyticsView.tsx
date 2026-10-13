@@ -144,8 +144,15 @@ export const StudentAnalyticsView: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      {data && data.hasData ? (
+      {/* KPI Cards Grid or Loading / Empty States */}
+      {loading ? (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-xs">
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            विश्लेषण डेटा लोड हो रहा है... (Loading Analytics...)
+          </p>
+        </div>
+      ) : data && data.hasData ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* Best Net WPM */}

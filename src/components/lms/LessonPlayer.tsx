@@ -27,6 +27,8 @@ import { mapPhysicalKeyToHindi, getKeystrokeForChar } from '@/services/engine/in
 import { audioService } from '@/services/engine/audioService';
 import { ProgressionService } from '@/services/lms/progressionService';
 import { AdaptivePracticeService } from '@/services/lms/adaptivePracticeService';
+import { storageService } from '@/services/storage/storageService';
+import { StatisticsService } from '@/services/statistics/statisticsService';
 import { useProfile } from '@/context/ProfileContext';
 import { LmsLesson, LessonStageId } from '@/types/lms';
 
@@ -54,10 +56,17 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
   const [typedChars, setTypedChars] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [errorsCount, setErrorsCount] = useState(0);
+  const [hasError, setHasError] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isTestActive, setIsTestActive] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+
+  const currentIndexRef = useRef(0);
+  currentIndexRef.current = currentIndex;
+
+  const errorsCountRef = useRef(0);
+  errorsCountRef.current = errorsCount;
 
   // Keyboard visualization states
   const [activeKeyCodes, setActiveKeyCodes] = useState<string[]>([]);
@@ -75,6 +84,77 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Track completed stages for sequential unlocking
+  const [completedStages, setCompletedStages] = useState<Set<LessonStageId>>(new Set());
+
+  // Load existing stage progress on mount / lesson change
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!activeProfile) return;
+      try {
+        const adapter = await storageService.getAdapter();
+        const prog = await adapter.getLessonProgressById(activeProfile.id, lesson.id);
+        if (prog) {
+          const completed = new Set<LessonStageId>();
+          if (prog.isCompleted || prog.stageReached === 'completed') {
+            completed.add('learn');
+            completed.add('guided');
+            completed.add('independent');
+            completed.add('test');
+          } else if (prog.stageReached === 'test') {
+            completed.add('learn');
+            completed.add('guided');
+            completed.add('independent');
+          } else if (prog.stageReached === 'independent') {
+            completed.add('learn');
+            completed.add('guided');
+          } else if (prog.stageReached === 'guided') {
+            completed.add('learn');
+          }
+          setCompletedStages((prev) => {
+            const merged = new Set(Array.from(prev));
+            completed.forEach((s) => merged.add(s));
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load lesson stage progress:', err);
+      }
+    };
+    loadProgress();
+  }, [activeProfile, lesson.id]);
+
+  // Update completed stages and daily progress when a stage evaluation finishes
+  useEffect(() => {
+    if (showResultModal) {
+      if (testResult?.passed) {
+        setCompletedStages((prev) => { const s = new Set(Array.from(prev)); s.add(currentStage); return s; });
+      }
+      if (activeProfile && elapsedSeconds > 0) {
+        StatisticsService.recordDailyProgress(
+          activeProfile.id,
+          elapsedSeconds,
+          Boolean(testResult?.passed && currentStage === 'test')
+        ).catch((err) => console.error('Failed to record daily progress:', err));
+      }
+    }
+  }, [showResultModal, testResult?.passed, currentStage, activeProfile, elapsedSeconds]);
+
+  const isStageAccessible = (stage: LessonStageId): boolean => {
+    switch (stage) {
+      case 'learn':
+        return true;
+      case 'guided':
+        return completedStages.has('learn');
+      case 'independent':
+        return completedStages.has('guided');
+      case 'test':
+        return completedStages.has('independent');
+      default:
+        return false;
+    }
+  };
+
   // Setup target text when stage changes
   useEffect(() => {
     if (currentStage === 'guided') {
@@ -91,6 +171,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     setTypedChars([]);
     setCurrentIndex(0);
     setErrorsCount(0);
+    setHasError(false);
     setStartTime(null);
     setElapsedSeconds(0);
     setIsTestActive(false);
@@ -129,12 +210,13 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
     setIsFinished(true);
     setIsTestActive(false);
 
-    const totalChars = targetText.length;
-    const correctChars = Math.max(0, totalChars - errorsCount);
+    const totalChars = currentIndexRef.current;
+    const currentErrors = errorsCountRef.current;
+    const correctChars = Math.max(0, totalChars - currentErrors);
     const accuracy = totalChars > 0 ? (correctChars / totalChars) * 100 : 100;
     const minutes = Math.max(0.1, elapsedSeconds / 60);
     const grossWpm = (totalChars / 5) / minutes;
-    const netWpm = Math.max(0, grossWpm - (errorsCount / minutes));
+    const netWpm = Math.max(0, grossWpm - (currentErrors / minutes));
 
     if (activeProfile) {
       const { isPassed, nextUnlockedLessonId } = await ProgressionService.recordStageAttempt(
@@ -163,7 +245,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       });
       setShowResultModal(true);
     }
-  }, [targetText, errorsCount, elapsedSeconds, activeProfile, lesson, currentStage]);
+  }, [elapsedSeconds, activeProfile, lesson, currentStage]);
 
   // Handle student physical keystroke
   const handleKeyDown = useCallback(
@@ -178,9 +260,15 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       // Handle Backspace
       if (e.code === 'Backspace') {
         e.preventDefault();
-        if (currentIndex > 0) {
+        if (hasError) {
+          if (!isMuted) audioService.playKeyClick();
+          setHasError(false);
+          setErrorKeyCode(undefined);
+        } else if (currentIndex > 0) {
+          if (!isMuted) audioService.playKeyClick();
           setCurrentIndex((prev) => prev - 1);
           setTypedChars((prev) => prev.slice(0, -1));
+          setErrorKeyCode(undefined);
         }
         return;
       }
@@ -196,7 +284,9 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       setActiveKeyCodes([e.code]);
       setTimeout(() => setActiveKeyCodes([]), 150);
 
-      const typedHindiChar = mapPhysicalKeyToHindi(e.code, e.shiftKey);
+      const typedHindiChar = (e.code === 'Enter' || e.code === 'NumpadEnter')
+        ? '\n'
+        : mapPhysicalKeyToHindi(e.code, e.shiftKey);
 
       if (!typedHindiChar) {
         return;
@@ -207,6 +297,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       if (typedHindiChar === expected) {
         // Correct keypress
         if (!isMuted) audioService.playKeyStroke();
+        setHasError(false);
         setErrorKeyCode(undefined);
         setTypedChars((prev) => [...prev, typedHindiChar]);
 
@@ -221,6 +312,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
         // Incorrect keypress
         if (!isMuted) audioService.playError();
         setErrorsCount((prev) => prev + 1);
+        setHasError(true);
         setErrorKeyCode(e.code);
 
         // Record error in adaptive tracking
@@ -242,6 +334,7 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
       activeProfile,
       expectedKeystroke,
       handleFinishStage,
+      hasError,
     ]
   );
 
@@ -294,9 +387,12 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
             A. परिचय (Learn)
           </button>
           <button
-            onClick={() => setCurrentStage('guided')}
+            onClick={() => isStageAccessible('guided') && setCurrentStage('guided')}
+            disabled={!isStageAccessible('guided')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              currentStage === 'guided'
+              !isStageAccessible('guided')
+                ? 'cursor-not-allowed opacity-50 text-slate-400 dark:text-slate-600'
+                : currentStage === 'guided'
                 ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
@@ -304,9 +400,12 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
             B. मार्गदर्शित (Guided)
           </button>
           <button
-            onClick={() => setCurrentStage('independent')}
+            onClick={() => isStageAccessible('independent') && setCurrentStage('independent')}
+            disabled={!isStageAccessible('independent')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              currentStage === 'independent'
+              !isStageAccessible('independent')
+                ? 'cursor-not-allowed opacity-50 text-slate-400 dark:text-slate-600'
+                : currentStage === 'independent'
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
@@ -314,9 +413,12 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
             C. स्वतंत्र (Practice)
           </button>
           <button
-            onClick={() => setCurrentStage('test')}
+            onClick={() => isStageAccessible('test') && setCurrentStage('test')}
+            disabled={!isStageAccessible('test')}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-              currentStage === 'test'
+              !isStageAccessible('test')
+                ? 'cursor-not-allowed opacity-50 text-slate-400 dark:text-slate-600'
+                : currentStage === 'test'
                 ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
@@ -400,7 +502,10 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
           <div className="flex justify-end pt-4">
             <Button
               size="lg"
-              onClick={() => setCurrentStage('guided')}
+              onClick={() => {
+                setCompletedStages((prev) => { const s = new Set(Array.from(prev)); s.add('learn'); return s; });
+                setCurrentStage('guided');
+              }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold px-8"
             >
               मार्गदर्शित अभ्यास प्रारंभ करें (Stage B)
@@ -499,13 +604,14 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
                 if (index < currentIndex) {
                   charStyle = 'text-emerald-700 dark:text-emerald-400 font-bold';
                 } else if (index === currentIndex) {
-                  charStyle =
-                    'text-slate-900 dark:text-white bg-blue-200 dark:bg-blue-900/60 underline decoration-blue-500 decoration-4 rounded px-0.5 animate-pulse';
+                  charStyle = hasError
+                    ? 'text-rose-900 dark:text-rose-100 bg-rose-200 dark:bg-rose-900/60 underline decoration-rose-500 decoration-4 rounded px-0.5 animate-pulse'
+                    : 'text-slate-900 dark:text-white bg-blue-200 dark:bg-blue-900/60 underline decoration-blue-500 decoration-4 rounded px-0.5 animate-pulse';
                 }
 
                 return (
                   <span key={index} className={charStyle}>
-                    {char === ' ' ? '\u00A0' : char}
+                    {char === ' ' ? '\u00A0' : char === '\n' ? '↵\n' : char}
                   </span>
                 );
               })}
@@ -580,47 +686,64 @@ export const LessonPlayer: React.FC<LessonPlayerProps> = ({
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowResultModal(false);
-                  resetStageTyping();
-                }}
-              >
-                पुनः प्रयास करें
-              </Button>
+              {testResult.passed ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowResultModal(false);
+                      resetStageTyping();
+                    }}
+                  >
+                    पुनः प्रयास करें
+                  </Button>
 
-              {currentStage !== 'test' ? (
-                <Button
-                  onClick={() => {
-                    setShowResultModal(false);
-                    if (currentStage === 'guided') setCurrentStage('independent');
-                    else if (currentStage === 'independent') setCurrentStage('test');
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-medium"
-                >
-                  अगला चरण प्रारंभ करें
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              ) : testResult.passed ? (
-                <Button
-                  onClick={() => {
-                    setShowResultModal(false);
-                    if (onLessonCompleted) {
-                      onLessonCompleted(testResult.nextLessonId);
-                    } else {
-                      onBack();
-                    }
-                  }}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold"
-                >
-                  अगला पाठ प्रारंभ करें
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  {currentStage !== 'test' ? (
+                    <Button
+                      onClick={() => {
+                        setShowResultModal(false);
+                        if (currentStage === 'guided') setCurrentStage('independent');
+                        else if (currentStage === 'independent') setCurrentStage('test');
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-medium"
+                    >
+                      अगला चरण प्रारंभ करें
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setShowResultModal(false);
+                        if (onLessonCompleted) {
+                          onLessonCompleted(testResult.nextLessonId);
+                        } else {
+                          onBack();
+                        }
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold"
+                    >
+                      अगला पाठ प्रारंभ करें
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                </>
               ) : (
-                <Button variant="ghost" onClick={onBack}>
-                  पाठ सूची पर वापस
-                </Button>
+                <>
+                  {currentStage === 'test' && (
+                    <Button variant="ghost" onClick={onBack}>
+                      पाठ सूची पर वापस
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setShowResultModal(false);
+                      resetStageTyping();
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                  >
+                    पुनः प्रयास करें
+                  </Button>
+                </>
               )}
             </div>
           </div>

@@ -131,7 +131,15 @@ export const KeyboardHeatmapView: React.FC = () => {
       </div>
 
       {/* Interactive Virtual Heatmap Canvas */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs overflow-x-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs overflow-x-auto relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xs flex items-center justify-center z-10 rounded-xl">
+            <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>कीबोर्ड सटीकता लोड हो रही है...</span>
+            </div>
+          </div>
+        )}
         <div className="min-w-[800px] flex flex-col gap-2 mx-auto">
           {/* Number Row */}
           <div className="flex gap-1.5 justify-center">

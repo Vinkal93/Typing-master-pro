@@ -31,6 +31,7 @@ import { ScoringEngine } from '@/services/exam/scoringEngine';
 import { storageService } from '@/services/storage/storageService';
 import { HeatmapService } from '@/services/analytics/heatmapService';
 import { AchievementService } from '@/services/achievements/achievementService';
+import { StatisticsService } from '@/services/statistics/statisticsService';
 import { useProfile } from '@/context/ProfileContext';
 import {
   ExamAttemptRecord,
@@ -142,6 +143,7 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       const adapter = await storageService.getAdapter();
       await adapter.saveExamResult(record);
       if (activeProfile) {
+        await StatisticsService.recordDailyProgress(activeProfile.id, actualDuration);
         AchievementService.evaluateAndAwardAchievements(activeProfile.id).catch(() => {});
       }
     } catch {
@@ -272,16 +274,26 @@ export const ExamScreen: React.FC<ExamScreenProps> = ({
       let charToAdd = '';
 
       if (config.layout === 'Hindi InScript') {
-        const hindi = mapPhysicalKeyToHindi(e.code, e.shiftKey);
-        if (!hindi) return;
-        charToAdd = hindi;
+        if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+          charToAdd = '\n';
+        } else {
+          const hindi = mapPhysicalKeyToHindi(e.code, e.shiftKey);
+          if (!hindi) return;
+          charToAdd = hindi;
+        }
       } else if (config.layout === 'Hindi Remington GAIL') {
-        const remingtonChar = mapPhysicalKeyToRemington(e.code, e.shiftKey);
-        if (!remingtonChar) return;
-        charToAdd = remingtonChar;
+        if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+          charToAdd = '\n';
+        } else {
+          const remingtonChar = mapPhysicalKeyToRemington(e.code, e.shiftKey);
+          if (!remingtonChar) return;
+          charToAdd = remingtonChar;
+        }
       } else {
         // English QWERTY
-        if (e.key.length === 1) {
+        if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.key === 'Enter') {
+          charToAdd = '\n';
+        } else if (e.key.length === 1) {
           charToAdd = e.key;
         } else if (e.code === 'Space') {
           charToAdd = ' ';

@@ -102,8 +102,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const completionPercentage = Math.round((completedLessons / totalLessons) * 100);
 
   const dailyGoalMinutes = activeProfile.preferences.dailyPracticeGoal || 15;
-  const todayMinutes = stats.todayMinutes || 0;
-  const dailyGoalPct = Math.min(100, Math.round((todayMinutes / dailyGoalMinutes) * 100));
+  const todayMinutes = stats.todayMinutes && !isNaN(stats.todayMinutes) ? Math.round(stats.todayMinutes) : 0;
+  const dailyGoalPct = dailyGoalMinutes > 0 ? Math.min(100, Math.max(0, Math.round((todayMinutes / dailyGoalMinutes) * 100))) : 0;
 
   const layoutDisplayName =
     activeProfile.preferences.keyboardLayout === 'hindi_inscript'
@@ -251,14 +251,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                  {stats.hasData ? stats.averageNetWpm : '0'}
+                  {stats.hasData && !isNaN(stats.averageNetWpm) ? Math.round(stats.averageNetWpm * 10) / 10 : '0'}
                 </span>
                 <span className="text-xs font-semibold text-slate-400">WPM</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                {stats.hasData ? (
+                {stats.hasData && !isNaN(stats.peakNetWpm) ? (
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                    Peak: {stats.peakNetWpm} WPM
+                    Peak: {Math.round(stats.peakNetWpm * 10) / 10} WPM
                   </span>
                 ) : (
                   'No speed records logged'
@@ -276,7 +276,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <div>
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                  {stats.hasData ? `${stats.averageAccuracy}%` : '0%'}
+                  {stats.hasData && !isNaN(stats.averageAccuracy) ? `${Math.round(stats.averageAccuracy * 10) / 10}%` : '0%'}
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
@@ -298,7 +298,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                  {stats.totalPracticeMinutes}
+                  {stats.totalPracticeMinutes && !isNaN(stats.totalPracticeMinutes) ? Math.round(stats.totalPracticeMinutes) : 0}
                 </span>
                 <span className="text-xs font-semibold text-slate-400">mins</span>
               </div>
@@ -317,12 +317,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                  {stats.totalTests}
+                  {stats.totalTests && !isNaN(stats.totalTests) ? stats.totalTests : 0}
                 </span>
                 <span className="text-xs font-semibold text-slate-400">sessions</span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                {stats.totalTests > 0 ? `${recentExams.length} official exams` : 'Take your debut test'}
+                {(stats.totalTests || 0) > 0 ? `${recentExams.length} official exams` : 'Take your debut test'}
               </p>
             </div>
           </Card>
@@ -414,7 +414,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           {/* Course Roadmap Preview */}
           <CourseRoadmapPreview
             layout={activeProfile.preferences.keyboardLayout}
-            onSelectLesson={() => onStartPractice()}
+            onSelectLesson={(lesson) => onContinueCourse(lesson.id)}
           />
 
           {/* SECTION E: Recent Typing Sessions */}

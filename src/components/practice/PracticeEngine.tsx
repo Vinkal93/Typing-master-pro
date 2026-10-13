@@ -35,7 +35,7 @@ export interface PracticePassage {
   estimatedMinutes: number;
 }
 
-export const PRACTICE_PASSAGES: PracticePassage[] = [
+export const HINDI_PRACTICE_PASSAGES: PracticePassage[] = [
   {
     id: 'pass_home_row',
     title: 'अभ्यास 1: होम रो वर्ण एवं मात्राएँ (Home Row Drills)',
@@ -66,11 +66,68 @@ export const PRACTICE_PASSAGES: PracticePassage[] = [
   },
 ];
 
-export const PracticeEngine: React.FC = () => {
+export const ENGLISH_PRACTICE_PASSAGES: PracticePassage[] = [
+  {
+    id: 'pass_en_home_row',
+    title: 'Drill 1: Home Row Anchors (asdf jkl;)',
+    difficulty: 'Beginner',
+    text: 'asdf jkl; all fall ask dad fad glad lad salsa flask salad falls ask dad',
+    estimatedMinutes: 2,
+  },
+  {
+    id: 'pass_en_common_words',
+    title: 'Drill 2: Essential Vocabulary & Shift Layer',
+    difficulty: 'Intermediate',
+    text: 'The quick brown fox jumps over the lazy dog. Practice makes a person perfect in speed and accuracy.',
+    estimatedMinutes: 3,
+  },
+  {
+    id: 'pass_en_office_text',
+    title: 'Drill 3: Professional Office Drafting & Punctuation',
+    difficulty: 'Exam',
+    text: 'Success in competitive typing examinations requires persistent practice, upright posture, and focused concentration on screen characters without glancing at the physical keyboard.',
+    estimatedMinutes: 5,
+  },
+  {
+    id: 'pass_en_tech_terms',
+    title: 'Drill 4: Digital Literacy & Technology Terms',
+    difficulty: 'Exam',
+    text: 'Computer technology has revolutionized governance and administration across the globe. Fast and accurate keyboarding skills are essential for productivity in modern offices.',
+    estimatedMinutes: 5,
+  },
+];
+
+export const PRACTICE_PASSAGES = HINDI_PRACTICE_PASSAGES;
+
+interface PracticeEngineProps {
+  customDrillText?: string;
+  customDrillTitle?: string;
+}
+
+export const PracticeEngine: React.FC<PracticeEngineProps> = ({
+  customDrillText,
+  customDrillTitle,
+}) => {
   const { activeProfile } = useProfile();
+  const isEnglish = activeProfile?.preferences.keyboardLayout === 'english_qwerty';
+  const basePassages = isEnglish ? ENGLISH_PRACTICE_PASSAGES : HINDI_PRACTICE_PASSAGES;
+
+  const availablePassages = React.useMemo(() => {
+    if (customDrillText) {
+      const customPassage: PracticePassage = {
+        id: 'pass_custom_drill',
+        title: customDrillTitle || 'सुधार अभ्यास (Remedial Drill)',
+        difficulty: 'Intermediate',
+        text: customDrillText,
+        estimatedMinutes: 2,
+      };
+      return [customPassage, ...basePassages];
+    }
+    return basePassages;
+  }, [customDrillText, customDrillTitle, basePassages]);
 
   const [selectedPassageIndex, setSelectedPassageIndex] = useState<number>(0);
-  const activePassage = PRACTICE_PASSAGES[selectedPassageIndex];
+  const activePassage = availablePassages[selectedPassageIndex] || availablePassages[0];
 
   // Typing engine states
   const [typedText, setTypedText] = useState<string>('');
@@ -81,6 +138,7 @@ export const PracticeEngine: React.FC = () => {
   const [errorCount, setErrorCount] = useState<number>(0);
   const [backspaceCount, setBackspaceCount] = useState<number>(0);
   const [lastErrorCode, setLastErrorCode] = useState<string | undefined>();
+  const [hasError, setHasError] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
@@ -128,6 +186,7 @@ export const PracticeEngine: React.FC = () => {
     setErrorCount(0);
     setBackspaceCount(0);
     setLastErrorCode(undefined);
+    setHasError(false);
     setIsResultModalOpen(false);
     setResultSaved(false);
   };
@@ -145,7 +204,12 @@ export const PracticeEngine: React.FC = () => {
       // Handle Backspace
       if (e.code === 'Backspace') {
         e.preventDefault();
-        if (typedText.length > 0) {
+        if (hasError) {
+          audioService.playKeyClick();
+          setHasError(false);
+          setLastErrorCode(undefined);
+          setBackspaceCount((b) => b + 1);
+        } else if (typedText.length > 0) {
           audioService.playKeyClick();
           setTypedText((prev) => prev.slice(0, -1));
           setBackspaceCount((b) => b + 1);
@@ -159,8 +223,20 @@ export const PracticeEngine: React.FC = () => {
         return;
       }
 
-      // Map physical key to InScript Hindi
-      const mappedChar = mapPhysicalKeyToHindi(e.code, e.shiftKey, e.altKey);
+      // Map physical key to appropriate layout (InScript Hindi or English QWERTY)
+      let mappedChar: string | null = null;
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+        mappedChar = '\n';
+      } else if (e.code === 'Space') {
+        mappedChar = ' ';
+      } else if (isEnglish) {
+        if (e.key && e.key.length === 1) {
+          mappedChar = e.key;
+        }
+      } else {
+        mappedChar = mapPhysicalKeyToHindi(e.code, e.shiftKey, e.altKey);
+      }
+
       if (!mappedChar) return;
 
       e.preventDefault(); // Prevent default OS input and IME duplication!
@@ -176,6 +252,7 @@ export const PracticeEngine: React.FC = () => {
         audioService.playKeyClick();
         const nextTyped = typedText + mappedChar;
         setTypedText(nextTyped);
+        setHasError(false);
         setLastErrorCode(undefined);
 
         // Check if finished
@@ -187,10 +264,11 @@ export const PracticeEngine: React.FC = () => {
       } else {
         audioService.playErrorBeep();
         setErrorCount((err) => err + 1);
+        setHasError(true);
         setLastErrorCode(e.code);
       }
     },
-    [isFinished, isPaused, isStarted, typedText, targetChars, typedChars, activePassage]
+    [isFinished, isPaused, isStarted, typedText, targetChars, typedChars, activePassage, hasError, isEnglish]
   );
 
   useEffect(() => {
@@ -303,7 +381,7 @@ export const PracticeEngine: React.FC = () => {
 
       {/* Passage Selector */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {PRACTICE_PASSAGES.map((pass, pIdx) => {
+        {availablePassages.map((pass, pIdx) => {
           const isSelected = selectedPassageIndex === pIdx;
           return (
             <button
@@ -397,12 +475,14 @@ export const PracticeEngine: React.FC = () => {
             if (isTyped) {
               charClass = isMatch ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-500 bg-red-100 dark:bg-red-950/60 rounded px-0.5 line-through';
             } else if (isCurrent) {
-              charClass = 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/80 rounded px-1 font-extrabold ring-2 ring-blue-500 shadow-sm animate-pulse';
+              charClass = hasError
+                ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/80 rounded px-1 font-extrabold ring-2 ring-red-500 shadow-sm animate-pulse'
+                : 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/80 rounded px-1 font-extrabold ring-2 ring-blue-500 shadow-sm animate-pulse';
             }
 
             return (
               <span key={index} className={charClass}>
-                {char}
+                {char === '\n' ? '↵\n' : char}
               </span>
             );
           })}
@@ -414,7 +494,7 @@ export const PracticeEngine: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-slate-500 font-medium">Next Target Key:</span>
               <span className="text-lg font-extrabold text-blue-600 font-devanagari">
-                {currentTargetChar === ' ' ? 'Space (रिक्त स्थान)' : currentTargetChar}
+                {currentTargetChar === ' ' ? 'Space (रिक्त स्थान)' : currentTargetChar === '\n' ? 'Enter (नई पंक्ति)' : currentTargetChar}
               </span>
               <kbd className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono font-bold text-xs">
                 {currentKeystroke.enKeyLabel}
